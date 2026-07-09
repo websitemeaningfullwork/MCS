@@ -53,6 +53,16 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  let role: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    role = profile?.role ?? null;
+  }
+
   return (
     <html
       lang="en"
@@ -74,7 +84,7 @@ export default async function RootLayout({
               >
                 Skip to content
               </a>
-              <Navbar authed={Boolean(user)} />
+              <Navbar authed={Boolean(user)} role={role} />
               <main id="main" className="flex-1 pt-24">
                 {children}
               </main>

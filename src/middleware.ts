@@ -45,7 +45,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const requiresAuth =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/checkout");
+    pathname.startsWith("/dashboard") ||
+    pathname === "/mentor" ||
+    pathname.startsWith("/mentor/") ||
+    pathname.startsWith("/checkout");
 
   if (requiresAuth && !user) {
     const url = request.nextUrl.clone();

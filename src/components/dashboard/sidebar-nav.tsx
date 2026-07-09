@@ -14,6 +14,7 @@ import {
   Radio,
   Receipt,
   Settings,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const ICONS: Record<string, LucideIcon> = {
   blog: FileText,
   live: Radio,
   tests: ClipboardList,
+  profile: UserRound,
 };
 
 export type NavItem = {

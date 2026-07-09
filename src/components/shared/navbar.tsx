@@ -10,7 +10,9 @@ import {
   Menu,
   Search,
   Settings,
+  Shield,
   User,
+  UserRound,
 } from "lucide-react";
 
 import { Logo } from "@/components/shared/logo";
@@ -39,11 +41,20 @@ import { signOut } from "@/features/auth/actions";
 import { NAV_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export function Navbar({ authed }: { authed: boolean }) {
+export function Navbar({
+  authed,
+  role,
+}: {
+  authed: boolean;
+  role?: string | null;
+}) {
   const dict = useDict();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+
+  const homeForRole =
+    role === "admin" ? "/admin" : role === "mentor" ? "/mentor" : "/dashboard";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -189,6 +200,22 @@ export function Navbar({ authed }: { authed: boolean }) {
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>My account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {role === "admin" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <Shield className="size-4" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {role === "mentor" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/mentor">
+                      <UserRound className="size-4" />
+                      Mentor Panel
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard">
                     <LayoutDashboard className="size-4" />
@@ -266,7 +293,7 @@ export function Navbar({ authed }: { authed: boolean }) {
                 <LangToggle />
                 <SheetClose asChild>
                   <Button asChild size="sm" className="rounded-full">
-                    <Link href={authed ? "/dashboard" : "/login"}>
+                    <Link href={authed ? homeForRole : "/login"}>
                       <User className="size-4" />
                       {authed ? dict.nav.dashboard : dict.nav.login}
                     </Link>
