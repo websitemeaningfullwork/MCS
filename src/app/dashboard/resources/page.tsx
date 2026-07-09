@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen, Download } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/button";
 import { RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 
@@ -23,8 +24,11 @@ export default async function MyResourcesPage() {
     .map((a) => a.resource_id)
     .filter((id): id is string => Boolean(id));
 
+  // Ownership is already established via resource_access above; read the (now
+  // admin-only) resources table with the service role to show titles + files.
+  const admin = createAdminClient();
   const { data: resources } = resourceIds.length
-    ? await supabase
+    ? await admin
         .from("resources")
         .select("id, title, kind, author, file_storage_path")
         .in("id", resourceIds)

@@ -53,6 +53,30 @@ export async function postAnswer(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in." };
 
+  // Explicit authorization: the caller must be able to see the question
+  // (owner, assigned mentor, admin, or a community question). RLS on the read
+  // enforces this — if the row is not visible, the caller may not answer it.
+  const { data: question } = await supabase
+    .from("questions")
+    .select("id, student_id, mentor_id, visibility")
+    .eq("id", questionId)
+    .maybeSingle();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const isStaff = profile?.role === "admin" || profile?.role === "mentor";
+
+  const canAnswer =
+    !!question &&
+    (question.student_id === user.id ||
+      question.mentor_id === user.id ||
+      question.visibility === "community" ||
+      profile?.role === "admin");
+  if (!canAnswer) return { error: "You cannot reply to this question." };
+
   const { error } = await supabase.from("answers").insert({
     question_id: questionId,
     author_id: user.id,
@@ -61,12 +85,7 @@ export async function postAnswer(
   if (error) return { error: "Could not post your reply." };
 
   // If the author is staff, mark the question answered.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role === "admin" || profile?.role === "mentor") {
+  if (isStaff) {
     await supabase
       .from("questions")
       .update({ status: "answered" })
@@ -86,6 +105,24 @@ export async function closeQuestion(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in." };
+
+  // Only the question owner, its assigned mentor, or an admin may close it.
+  const { data: question } = await supabase
+    .from("questions")
+    .select("id, student_id, mentor_id")
+    .eq("id", questionId)
+    .maybeSingle();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const canClose =
+    !!question &&
+    (question.student_id === user.id ||
+      question.mentor_id === user.id ||
+      profile?.role === "admin");
+  if (!canClose) return { error: "You cannot close this question." };
 
   const { error } = await supabase
     .from("questions")

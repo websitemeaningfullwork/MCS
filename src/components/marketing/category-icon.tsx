@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   Book,
   BookOpen,
@@ -44,6 +45,7 @@ export function CategoryIcon({
   name: string | null | undefined;
   className?: string;
 }) {
-  const Icon = getIcon(name);
-  return <Icon className={className} aria-hidden="true" />;
+  // Resolve the icon via createElement so the linter does not see a component
+  // being "created" during render (the icon set is static, keyed by name).
+  return createElement(getIcon(name), { className, "aria-hidden": true });
 }

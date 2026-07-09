@@ -344,6 +344,7 @@ export type Database = {
           pages: number | null;
           is_featured: boolean | null;
           is_premium: boolean | null;
+          status: string;
           created_at: string | null;
         };
         Insert: {
@@ -361,6 +362,7 @@ export type Database = {
           pages?: number | null;
           is_featured?: boolean | null;
           is_premium?: boolean | null;
+          status?: string;
           created_at?: string | null;
         };
         Update: {
@@ -378,6 +380,7 @@ export type Database = {
           pages?: number | null;
           is_featured?: boolean | null;
           is_premium?: boolean | null;
+          status?: string;
           created_at?: string | null;
         };
         Relationships: [];
@@ -840,7 +843,47 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      // Non-null base columns (id, slug, title, kind, price_bdt, question, ...)
+      // stay non-null here so consumers don't inherit spurious nullability.
+      public_mentor_profiles: {
+        Row: {
+          id: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+        };
+        Relationships: [];
+      };
+      public_resources: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          author: string | null;
+          kind: Database["public"]["Enums"]["resource_kind"];
+          cover_url: string | null;
+          description: string | null;
+          price_bdt: number;
+          external_url: string | null;
+          pages: number | null;
+          is_featured: boolean | null;
+          is_premium: boolean | null;
+          status: string;
+          created_at: string | null;
+        };
+        Relationships: [];
+      };
+      public_mock_questions: {
+        Row: {
+          id: string;
+          mock_test_id: string | null;
+          question: string;
+          options: Json;
+          marks: number | null;
+          sort_order: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       is_admin: {

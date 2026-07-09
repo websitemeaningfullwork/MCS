@@ -19,8 +19,8 @@ async function getMentor(id: string) {
       .eq("id", id)
       .maybeSingle(),
     supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url, bio, role")
+      .from("public_mentor_profiles")
+      .select("id, full_name, avatar_url, bio")
       .eq("id", id)
       .maybeSingle(),
   ]);

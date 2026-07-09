@@ -144,12 +144,12 @@ Run: `node _migrate.mjs supabase/migrations/00X_name.sql`. (`pg` is a devDepende
 
 ## 5. Accounts & credentials
 
-- **Admin login:** `websitemeaningfulwork@gmail.com` — password set during setup
-  (`Mca@Admin2026!Kq`). **Rotate before public launch.**
+- **Admin login:** `websitemeaningfulwork@gmail.com` — credentials live in the
+  team secret manager (never commit them). **Rotate before public launch.**
 - **Demo mentors** (seeded via service role, linked to programs):
-  `ayesha.mentor@mca.demo` (password set to `MentorPass123!` during testing),
-  `sabbir.mentor@mca.demo`, `farhana.mentor@mca.demo` (random passwords — use
-  "Forgot password" to set one, or promote a real user instead).
+  `ayesha.mentor@mca.demo`, `sabbir.mentor@mca.demo`, `farhana.mentor@mca.demo`
+  — use the "Forgot password" flow to set a password, or promote a real user
+  instead. Do not store demo passwords in this repo.
 - **Env vars** (in Vercel + local `.env.local`, git-ignored):
   `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only).

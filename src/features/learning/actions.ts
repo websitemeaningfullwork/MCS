@@ -22,6 +22,24 @@ export async function markLessonComplete(
     .maybeSingle();
   if (!enrollment) return { error: "You are not enrolled in this program." };
 
+  // Verify the lesson actually belongs to this program before writing progress
+  // (otherwise a caller could mark arbitrary lessons complete).
+  const { data: lessonRow } = await supabase
+    .from("lessons")
+    .select("id, module_id")
+    .eq("id", lessonId)
+    .maybeSingle();
+  const { data: lessonModule } = lessonRow?.module_id
+    ? await supabase
+        .from("modules")
+        .select("program_id")
+        .eq("id", lessonRow.module_id)
+        .maybeSingle()
+    : { data: null };
+  if (!lessonRow || lessonModule?.program_id !== programId) {
+    return { error: "That lesson is not part of this program." };
+  }
+
   // lesson_progress is user-writable under RLS.
   await supabase.from("lesson_progress").upsert(
     {

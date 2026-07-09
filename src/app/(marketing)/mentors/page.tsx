@@ -25,7 +25,7 @@ export default async function MentorsPage({
   const rows = mentorRows ?? [];
   const ids = rows.map((m) => m.id);
   const { data: profiles } = ids.length
-    ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids)
+    ? await supabase.from("public_mentor_profiles").select("id, full_name, avatar_url").in("id", ids)
     : { data: [] };
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 

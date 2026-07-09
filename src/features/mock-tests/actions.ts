@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type McqOption = { key: string; label: string };
 
@@ -32,7 +33,20 @@ export async function submitAttempt(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in to submit your attempt." };
 
-  const { data: questions } = await supabase
+  // Gate access: only free tests are attemptable until a paid-test access
+  // model exists. Prevents scoring paid assessments for free.
+  const { data: test } = await supabase
+    .from("mock_tests")
+    .select("id, is_free")
+    .eq("id", testId)
+    .maybeSingle();
+  if (!test) return { error: "This test is not available." };
+  if (!test.is_free) return { error: "This test requires purchase." };
+
+  // Answer keys live in the admin-only base table — read them with the service
+  // role here (server-side scoring only; the client never sees correct_key).
+  const admin = createAdminClient();
+  const { data: questions } = await admin
     .from("mock_questions")
     .select("id, question, options, correct_key, explanation")
     .eq("mock_test_id", testId)

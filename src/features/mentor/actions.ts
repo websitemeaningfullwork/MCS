@@ -27,7 +27,7 @@ export async function updateOwnMentorProfile(input: {
     return { error: "Not authorized." };
   }
 
-  await supabase
+  const { error: profileErr } = await supabase
     .from("profiles")
     .update({
       full_name: input.full_name,
@@ -35,6 +35,7 @@ export async function updateOwnMentorProfile(input: {
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
+  if (profileErr) return { error: "Could not save your profile." };
 
   const { error } = await supabase
     .from("mentors")

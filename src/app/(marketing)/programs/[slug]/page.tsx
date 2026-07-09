@@ -84,7 +84,7 @@ export default async function ProgramDetailPage({
       : Promise.resolve({ data: null }),
     program.mentor_id
       ? supabase
-          .from("profiles")
+          .from("public_mentor_profiles")
           .select("id, full_name, avatar_url, bio")
           .eq("id", program.mentor_id)
           .maybeSingle()

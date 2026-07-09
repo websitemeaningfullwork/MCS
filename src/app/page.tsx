@@ -50,7 +50,7 @@ export default async function HomePage() {
       .gte("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: true })
       .limit(3),
-    supabase.from("resources").select("*").eq("kind", "ebook").limit(4),
+    supabase.from("public_resources").select("*").eq("kind", "ebook").limit(4),
   ]);
 
   const categories = categoriesRes.data ?? [];
@@ -66,7 +66,7 @@ export default async function HomePage() {
 
   const profilesRes = mentorIds.size
     ? await supabase
-        .from("profiles")
+        .from("public_mentor_profiles")
         .select("id, full_name, avatar_url")
         .in("id", [...mentorIds])
     : { data: [] };

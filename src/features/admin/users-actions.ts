@@ -33,7 +33,10 @@ export async function setUserRole(
 
   // Ensure a mentors row exists when promoting to mentor.
   if (role === "mentor") {
-    await supabase.from("mentors").upsert({ id: userId }, { onConflict: "id" });
+    const { error: mentorErr } = await supabase
+      .from("mentors")
+      .upsert({ id: userId }, { onConflict: "id" });
+    if (mentorErr) return { error: "Role changed, but the mentor record could not be created." };
   }
 
   revalidatePath("/admin/users");
@@ -48,10 +51,11 @@ export async function setMentorVerified(
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
 
-  await supabase.from("mentors").upsert(
+  const { error } = await supabase.from("mentors").upsert(
     { id: userId, is_verified: verified },
     { onConflict: "id" },
   );
+  if (error) return { error: "Could not update verification status." };
 
   revalidatePath("/admin/users");
   return {};

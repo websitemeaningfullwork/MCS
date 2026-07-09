@@ -44,7 +44,7 @@ export default async function ProgramsPage({
     ...new Set(programs.map((p) => p.mentor_id).filter((id): id is string => Boolean(id))),
   ];
   const { data: profiles } = mentorIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", mentorIds)
+    ? await supabase.from("public_mentor_profiles").select("id, full_name").in("id", mentorIds)
     : { data: [] };
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 

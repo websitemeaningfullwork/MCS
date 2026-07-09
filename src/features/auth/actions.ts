@@ -31,7 +31,11 @@ export async function signInWithEmail(
     password: parsed.data.password,
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    // Generic message to avoid account enumeration; log the real cause server-side.
+    console.error("signInWithEmail error:", error.message);
+    return { error: "Invalid email or password." };
+  }
   return { success: true };
 }
 
@@ -54,7 +58,10 @@ export async function signUpWithEmail(
     },
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("signUpWithEmail error:", error.message);
+    return { error: "Could not create your account. Please try again." };
+  }
   return { success: true, needsConfirmation: !data.session };
 }
 
@@ -84,7 +91,8 @@ export async function requestPasswordReset(
     { redirectTo: `${siteUrl()}/auth/callback?next=/reset-password` },
   );
 
-  if (error) return { error: error.message };
+  // Always report success to avoid revealing whether an account exists.
+  if (error) console.error("requestPasswordReset error:", error.message);
   return { success: true };
 }
 

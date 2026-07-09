@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { effectivePriceBDT } from "@/lib/format";
 
 /** Returns the admin's user id, or null if the caller is not an admin. */
 async function getAdminId(): Promise<string | null> {
@@ -35,11 +36,52 @@ export async function approvePayment(
   if (!sub || !sub.order_id || !sub.user_id) return { error: "Submission not found." };
   if (sub.status === "approved") return {}; // idempotent
 
+  const { data: order } = await admin
+    .from("orders")
+    .select("id, total_bdt, status")
+    .eq("id", sub.order_id)
+    .maybeSingle();
+  if (!order) return { error: "Order not found." };
+
   // Grant access for each item in the order.
   const { data: items } = await admin
     .from("order_items")
     .select("item_type, item_id")
     .eq("order_id", sub.order_id);
+
+  // Recompute the trusted total from source tables — never trust the stored
+  // order/item prices, which could have been tampered with at insert time.
+  let trustedTotal = 0;
+  for (const item of items ?? []) {
+    if (!item.item_id) continue;
+    if (item.item_type === "program") {
+      const { data: p } = await admin
+        .from("programs")
+        .select("price_bdt, discount_bdt, status")
+        .eq("id", item.item_id)
+        .maybeSingle();
+      if (!p || p.status !== "published") {
+        return { error: "Order contains an unavailable program — rejected." };
+      }
+      trustedTotal += effectivePriceBDT(p.price_bdt, p.discount_bdt);
+    } else if (item.item_type === "resource") {
+      const { data: r } = await admin
+        .from("resources")
+        .select("price_bdt, status")
+        .eq("id", item.item_id)
+        .maybeSingle();
+      if (!r || r.status !== "published") {
+        return { error: "Order contains an unavailable resource — rejected." };
+      }
+      trustedTotal += r.price_bdt ?? 0;
+    }
+  }
+
+  if (Math.round(trustedTotal) !== Math.round(order.total_bdt)) {
+    return {
+      error: "Order total does not match current prices — do not approve; reject instead.",
+    };
+  }
 
   for (const item of items ?? []) {
     if (!item.item_id) continue;

@@ -53,6 +53,17 @@ function ClassCard({
   );
 }
 
+/** Split classes into upcoming/recorded. Kept out of the component so the
+ *  `Date.now()` read is not treated as an impure call during render. */
+function partitionClasses(all: Tables<"live_classes">[]) {
+  const now = Date.now();
+  const upcoming = all
+    .filter((lc) => new Date(lc.starts_at).getTime() >= now)
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  const recorded = all.filter((lc) => Boolean(lc.replay_url));
+  return { upcoming, recorded };
+}
+
 export default async function LiveClassesPage() {
   const supabase = await createClient();
   const { data } = await supabase
@@ -61,12 +72,7 @@ export default async function LiveClassesPage() {
     .eq("is_public", true)
     .order("starts_at", { ascending: false });
 
-  const all = data ?? [];
-  const now = Date.now();
-  const upcoming = all
-    .filter((lc) => new Date(lc.starts_at).getTime() >= now)
-    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-  const recorded = all.filter((lc) => Boolean(lc.replay_url));
+  const { upcoming, recorded } = partitionClasses(data ?? []);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">

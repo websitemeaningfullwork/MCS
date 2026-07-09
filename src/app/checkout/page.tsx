@@ -43,7 +43,7 @@ export default async function CheckoutPage({
     discount = data.discount_bdt;
   } else {
     const { data } = await supabase
-      .from("resources")
+      .from("public_resources")
       .select("title, price_bdt")
       .eq("id", id)
       .maybeSingle();

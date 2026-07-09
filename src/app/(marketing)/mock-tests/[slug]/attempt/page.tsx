@@ -17,7 +17,7 @@ export default async function AttemptPage({
 
   const { data: test } = await supabase
     .from("mock_tests")
-    .select("id, slug, title")
+    .select("id, slug, title, is_free")
     .eq("slug", slug)
     .maybeSingle();
   if (!test) notFound();
@@ -27,9 +27,12 @@ export default async function AttemptPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/mock-tests/${slug}/attempt`);
 
-  // NOTE: correct_key is intentionally NOT selected here.
+  // Only free tests are attemptable until a paid-test access model exists.
+  if (!test.is_free) redirect(`/mock-tests/${slug}`);
+
+  // correct_key is not exposed: the public view omits it entirely.
   const { data: questionsData } = await supabase
-    .from("mock_questions")
+    .from("public_mock_questions")
     .select("id, question, options, sort_order")
     .eq("mock_test_id", test.id)
     .order("sort_order", { ascending: true });

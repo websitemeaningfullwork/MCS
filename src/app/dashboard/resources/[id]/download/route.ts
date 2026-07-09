@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * issues a short-lived signed URL for the private file and redirects to it.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -16,9 +16,7 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(
-      new URL("/login?next=/dashboard/resources", process.env.NEXT_PUBLIC_SITE_URL),
-    );
+    return NextResponse.redirect(new URL("/login?next=/dashboard/resources", req.url));
   }
 
   // Access check: owned resource or admin.
@@ -33,9 +31,7 @@ export async function GET(
   ]);
   const isAdmin = profile?.role === "admin";
   if (!access && !isAdmin) {
-    return NextResponse.redirect(
-      new URL("/dashboard/resources", process.env.NEXT_PUBLIC_SITE_URL),
-    );
+    return NextResponse.redirect(new URL("/dashboard/resources", req.url));
   }
 
   const { data: resource } = await supabase
@@ -44,9 +40,7 @@ export async function GET(
     .eq("id", id)
     .maybeSingle();
   if (!resource?.file_storage_path) {
-    return NextResponse.redirect(
-      new URL("/dashboard/resources", process.env.NEXT_PUBLIC_SITE_URL),
-    );
+    return NextResponse.redirect(new URL("/dashboard/resources", req.url));
   }
 
   const admin = createAdminClient();
@@ -54,9 +48,7 @@ export async function GET(
     .from("resource-files")
     .createSignedUrl(resource.file_storage_path, 60 * 5);
   if (!signed?.signedUrl) {
-    return NextResponse.redirect(
-      new URL("/dashboard/resources", process.env.NEXT_PUBLIC_SITE_URL),
-    );
+    return NextResponse.redirect(new URL("/dashboard/resources", req.url));
   }
 
   return NextResponse.redirect(signed.signedUrl);

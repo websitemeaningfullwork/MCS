@@ -13,7 +13,7 @@ import { formatBDT } from "@/lib/format";
 async function getResource(slug: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("resources")
+    .from("public_resources")
     .select("*")
     .eq("slug", slug)
     .maybeSingle();
@@ -46,7 +46,7 @@ export default async function ResourceDetailPage({
   if (!resource) notFound();
 
   const { data: related } = await supabase
-    .from("resources")
+    .from("public_resources")
     .select("*")
     .eq("kind", resource.kind)
     .neq("id", resource.id)

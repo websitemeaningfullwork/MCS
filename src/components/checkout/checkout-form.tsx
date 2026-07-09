@@ -19,6 +19,16 @@ const formSchema = manualPaymentSchema
   .extend({ paid_amount_bdt: z.number().positive("Enter the amount you paid.") });
 type FormValues = z.infer<typeof formSchema>;
 
+const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_SCREENSHOT_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+/** Build a per-user screenshot path. Module-scoped so the random id is not
+ *  treated as an impure call during component render. */
+function screenshotPath(userId: string, fileName: string) {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "png";
+  return `${userId}/${crypto.randomUUID()}.${ext}`;
+}
+
 export function CheckoutForm({
   type,
   id,
@@ -41,27 +51,36 @@ export function CheckoutForm({
   });
 
   async function onSubmit(values: FormValues) {
-    let screenshotPath: string | undefined;
+    let uploadedPath: string | undefined;
 
     if (file) {
+      // The screenshot is optional: validate it, and if the upload fails we
+      // still submit the payment (without it) rather than blocking checkout.
+      if (!ALLOWED_SCREENSHOT_TYPES.includes(file.type)) {
+        toast.error("Screenshot must be a PNG, JPEG, or WebP image.");
+        return;
+      }
+      if (file.size > MAX_SCREENSHOT_BYTES) {
+        toast.error("Screenshot is too large (max 5 MB).");
+        return;
+      }
       const supabase = createClient();
-      const ext = file.name.split(".").pop() ?? "png";
-      const path = `${userId}/${Date.now()}.${ext}`;
+      const path = screenshotPath(userId, file.name);
       const { error } = await supabase.storage
         .from("payment-screenshots")
         .upload(path, file, { upsert: false });
       if (error) {
-        toast.error("Screenshot upload failed — you can submit without it.");
-        return;
+        toast.warning("Screenshot upload failed — submitting without it.");
+      } else {
+        uploadedPath = path;
       }
-      screenshotPath = path;
     }
 
     const res = await submitManualPayment({
       type,
       id,
       ...values,
-      screenshot_path: screenshotPath,
+      screenshot_path: uploadedPath,
     });
     // On success the server action redirects; only errors return here.
     if (res?.error) toast.error(res.error);
@@ -75,10 +94,14 @@ export function CheckoutForm({
           id="sender_number"
           inputMode="numeric"
           placeholder="01XXXXXXXXX"
+          aria-invalid={errors.sender_number ? true : undefined}
+          aria-describedby={errors.sender_number ? "sender_number-error" : undefined}
           {...register("sender_number")}
         />
         {errors.sender_number ? (
-          <p className="text-sm text-destructive">{errors.sender_number.message}</p>
+          <p id="sender_number-error" role="alert" className="text-sm text-destructive">
+            {errors.sender_number.message}
+          </p>
         ) : null}
       </div>
 
@@ -87,10 +110,14 @@ export function CheckoutForm({
         <Input
           id="transaction_id"
           placeholder="e.g. 9AB1C2D3E4"
+          aria-invalid={errors.transaction_id ? true : undefined}
+          aria-describedby={errors.transaction_id ? "transaction_id-error" : undefined}
           {...register("transaction_id")}
         />
         {errors.transaction_id ? (
-          <p className="text-sm text-destructive">{errors.transaction_id.message}</p>
+          <p id="transaction_id-error" role="alert" className="text-sm text-destructive">
+            {errors.transaction_id.message}
+          </p>
         ) : null}
       </div>
 
@@ -100,10 +127,12 @@ export function CheckoutForm({
           id="paid_amount_bdt"
           type="number"
           step="1"
+          aria-invalid={errors.paid_amount_bdt ? true : undefined}
+          aria-describedby={errors.paid_amount_bdt ? "paid_amount_bdt-error" : undefined}
           {...register("paid_amount_bdt", { valueAsNumber: true })}
         />
         {errors.paid_amount_bdt ? (
-          <p className="text-sm text-destructive">
+          <p id="paid_amount_bdt-error" role="alert" className="text-sm text-destructive">
             {errors.paid_amount_bdt.message}
           </p>
         ) : null}
@@ -121,10 +150,22 @@ export function CheckoutForm({
         <input
           id="screenshot"
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp"
           className="sr-only"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>PNG, JPEG, or WebP · up to 5 MB</span>
+          {file ? (
+            <button
+              type="button"
+              className="font-medium text-primary hover:underline"
+              onClick={() => setFile(null)}
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>

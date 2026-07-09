@@ -57,9 +57,17 @@ export function ContactForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input id="name" placeholder="Your name" {...register("name")} />
+          <Input
+            id="name"
+            placeholder="Your name"
+            aria-invalid={errors.name ? true : undefined}
+            aria-describedby={errors.name ? "name-error" : undefined}
+            {...register("name")}
+          />
           {errors.name ? (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
+            <p id="name-error" role="alert" className="text-sm text-destructive">
+              {errors.name.message}
+            </p>
           ) : null}
         </div>
         <div className="space-y-2">
@@ -68,10 +76,14 @@ export function ContactForm() {
             id="email"
             type="email"
             placeholder="you@example.com"
+            aria-invalid={errors.email ? true : undefined}
+            aria-describedby={errors.email ? "contact-email-error" : undefined}
             {...register("email")}
           />
           {errors.email ? (
-            <p className="text-sm text-destructive">{errors.email.message}</p>
+            <p id="contact-email-error" role="alert" className="text-sm text-destructive">
+              {errors.email.message}
+            </p>
           ) : null}
         </div>
       </div>
@@ -81,10 +93,14 @@ export function ContactForm() {
         <Input
           id="subject"
           placeholder="How can we help?"
+          aria-invalid={errors.subject ? true : undefined}
+          aria-describedby={errors.subject ? "subject-error" : undefined}
           {...register("subject")}
         />
         {errors.subject ? (
-          <p className="text-sm text-destructive">{errors.subject.message}</p>
+          <p id="subject-error" role="alert" className="text-sm text-destructive">
+            {errors.subject.message}
+          </p>
         ) : null}
       </div>
 
@@ -94,10 +110,14 @@ export function ContactForm() {
           id="message"
           rows={5}
           placeholder="Tell us a little more…"
+          aria-invalid={errors.message ? true : undefined}
+          aria-describedby={errors.message ? "message-error" : undefined}
           {...register("message")}
         />
         {errors.message ? (
-          <p className="text-sm text-destructive">{errors.message.message}</p>
+          <p id="message-error" role="alert" className="text-sm text-destructive">
+            {errors.message.message}
+          </p>
         ) : null}
       </div>
 

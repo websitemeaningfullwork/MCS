@@ -23,11 +23,11 @@ async function loadItem(
     return { title: data.title, price: effectivePriceBDT(data.price_bdt, data.discount_bdt) };
   }
   const { data } = await supabase
-    .from("resources")
+    .from("public_resources")
     .select("title, price_bdt")
     .eq("id", id)
     .maybeSingle();
-  if (!data) return null;
+  if (!data || !data.title) return null;
   return { title: data.title, price: data.price_bdt ?? 0 };
 }
 
@@ -49,8 +49,21 @@ export async function submitManualPayment(
   if (!item) return { error: "This item is not available." };
   if (item.price <= 0) return { error: "This item is free — no payment needed." };
 
-  // Create the order (RLS: student may insert their own pending_verification order).
-  const { data: order, error: orderErr } = await supabase
+  // A screenshot path (optional) must live in the caller's own folder — never
+  // trust an arbitrary client-supplied path pointing at another user's files.
+  let safeScreenshotPath: string | null = null;
+  if (screenshot_path) {
+    if (!screenshot_path.startsWith(`${user.id}/`) || screenshot_path.includes("..")) {
+      return { error: "Invalid screenshot reference." };
+    }
+    safeScreenshotPath = screenshot_path;
+  }
+
+  // Orders/items/submissions are created server-side with the service role so
+  // clients cannot craft order rows or prices (RLS blocks student inserts).
+  const admin = createAdminClient();
+
+  const { data: order, error: orderErr } = await admin
     .from("orders")
     .insert({ user_id: user.id, total_bdt: item.price, status: "pending_verification" })
     .select("id")
@@ -59,7 +72,7 @@ export async function submitManualPayment(
     return { error: "Could not create your order. Please try again." };
   }
 
-  const { error: itemErr } = await supabase.from("order_items").insert({
+  const { error: itemErr } = await admin.from("order_items").insert({
     order_id: order.id,
     item_type: type,
     item_id: id,
@@ -68,14 +81,14 @@ export async function submitManualPayment(
   });
   if (itemErr) return { error: "Could not save your order. Please try again." };
 
-  const { error: subErr } = await supabase.from("manual_payment_submissions").insert({
+  const { error: subErr } = await admin.from("manual_payment_submissions").insert({
     order_id: order.id,
     user_id: user.id,
     method: "bkash",
     sender_number,
     transaction_id,
     paid_amount_bdt,
-    screenshot_path: screenshot_path ?? null,
+    screenshot_path: safeScreenshotPath,
     status: "submitted",
   });
   if (subErr) return { error: "Could not submit your payment. Please try again." };

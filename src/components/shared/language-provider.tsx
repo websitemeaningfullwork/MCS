@@ -6,7 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import {
   DEFAULT_LANG,
@@ -26,26 +26,52 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 const STORAGE_KEY = "mca-lang";
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(DEFAULT_LANG);
+// --- external store: language persisted in localStorage ---
+const listeners = new Set<() => void>();
 
-  // Load persisted language on mount (client only).
+function readStoredLang(): Lang {
+  if (typeof window === "undefined") return DEFAULT_LANG;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "en" || stored === "bn" ? stored : DEFAULT_LANG;
+}
+
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    listeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+function writeLang(next: Lang) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(STORAGE_KEY, next);
+  }
+  listeners.forEach((l) => l());
+}
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  // Reads persisted language without a setState-in-effect. Returns the server
+  // snapshot (DEFAULT_LANG) during hydration, then the stored value.
+  const lang = useSyncExternalStore(
+    subscribe,
+    readStoredLang,
+    () => DEFAULT_LANG,
+  );
+
+  // Keep <html lang> in sync with the active language (SEO + screen readers).
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "bn") {
-      setLangState(stored);
-    }
-  }, []);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.lang = next;
+    writeLang(next);
   }, []);
 
   const toggleLang = useCallback(() => {
-    setLang(lang === "en" ? "bn" : "en");
-  }, [lang, setLang]);
+    writeLang(readStoredLang() === "en" ? "bn" : "en");
+  }, []);
 
   const value = useMemo<LanguageContextValue>(
     () => ({ lang, setLang, toggleLang, dict: getDict(lang) }),

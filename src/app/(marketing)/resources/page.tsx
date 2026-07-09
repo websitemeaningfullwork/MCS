@@ -27,7 +27,7 @@ export default async function ResourcesPage({
   const { q, kind } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("resources").select("*");
+  let query = supabase.from("public_resources").select("*");
   if (kind && kind !== "all" && kind in RESOURCE_KIND_LABELS) {
     query = query.eq("kind", kind as Enums<"resource_kind">);
   }
