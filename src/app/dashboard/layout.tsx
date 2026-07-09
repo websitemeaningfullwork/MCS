@@ -1,13 +1,5 @@
 import { redirect } from "next/navigation";
-import {
-  BookOpen,
-  GraduationCap,
-  LayoutDashboard,
-  LogOut,
-  MessageCircleQuestion,
-  Receipt,
-  Settings,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { SidebarNav, type NavItem } from "@/components/dashboard/sidebar-nav";
@@ -15,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/features/auth/actions";
 
 const items: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/programs", label: "My Programs", icon: GraduationCap },
-  { href: "/dashboard/resources", label: "My Resources", icon: BookOpen },
-  { href: "/dashboard/orders", label: "My Orders", icon: Receipt },
-  { href: "/dashboard/questions", label: "Ask a Mentor", icon: MessageCircleQuestion },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Overview", icon: "dashboard", exact: true },
+  { href: "/dashboard/programs", label: "My Programs", icon: "programs" },
+  { href: "/dashboard/resources", label: "My Resources", icon: "resources" },
+  { href: "/dashboard/orders", label: "My Orders", icon: "orders" },
+  { href: "/dashboard/questions", label: "Ask a Mentor", icon: "questions" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 
 export default async function DashboardLayout({
