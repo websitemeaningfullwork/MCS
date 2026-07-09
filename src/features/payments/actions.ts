@@ -1,0 +1,115 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { effectivePriceBDT } from "@/lib/format";
+import { manualPaymentSchema, type ManualPaymentInput } from "./schemas";
+
+type ItemInfo = { title: string; price: number } | null;
+
+async function loadItem(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  type: "program" | "resource",
+  id: string,
+): Promise<ItemInfo> {
+  if (type === "program") {
+    const { data } = await supabase
+      .from("programs")
+      .select("title, price_bdt, discount_bdt, status")
+      .eq("id", id)
+      .maybeSingle();
+    if (!data || data.status !== "published") return null;
+    return { title: data.title, price: effectivePriceBDT(data.price_bdt, data.discount_bdt) };
+  }
+  const { data } = await supabase
+    .from("resources")
+    .select("title, price_bdt")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return { title: data.title, price: data.price_bdt ?? 0 };
+}
+
+export async function submitManualPayment(
+  input: ManualPaymentInput,
+): Promise<{ error: string }> {
+  const parsed = manualPaymentSchema.safeParse(input);
+  if (!parsed.success) return { error: "Please check the form and try again." };
+  const { type, id, sender_number, transaction_id, paid_amount_bdt, screenshot_path } =
+    parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Please log in to continue." };
+
+  const item = await loadItem(supabase, type, id);
+  if (!item) return { error: "This item is not available." };
+  if (item.price <= 0) return { error: "This item is free — no payment needed." };
+
+  // Create the order (RLS: student may insert their own pending_verification order).
+  const { data: order, error: orderErr } = await supabase
+    .from("orders")
+    .insert({ user_id: user.id, total_bdt: item.price, status: "pending_verification" })
+    .select("id")
+    .single();
+  if (orderErr || !order) {
+    return { error: "Could not create your order. Please try again." };
+  }
+
+  const { error: itemErr } = await supabase.from("order_items").insert({
+    order_id: order.id,
+    item_type: type,
+    item_id: id,
+    title: item.title,
+    price_bdt: item.price,
+  });
+  if (itemErr) return { error: "Could not save your order. Please try again." };
+
+  const { error: subErr } = await supabase.from("manual_payment_submissions").insert({
+    order_id: order.id,
+    user_id: user.id,
+    method: "bkash",
+    sender_number,
+    transaction_id,
+    paid_amount_bdt,
+    screenshot_path: screenshot_path ?? null,
+    status: "submitted",
+  });
+  if (subErr) return { error: "Could not submit your payment. Please try again." };
+
+  redirect(`/dashboard/orders/${order.id}`);
+}
+
+/** Grant instant access to a FREE program/resource (server-verified as free). */
+export async function enrollFree(
+  type: "program" | "resource",
+  id: string,
+): Promise<{ error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Please log in to continue." };
+
+  const item = await loadItem(supabase, type, id);
+  if (!item) return { error: "This item is not available." };
+  if (item.price > 0) return { error: "This item is not free." };
+
+  // Access grants bypass RLS (admin-only writes) — safe: server verified the item is free.
+  const admin = createAdminClient();
+  if (type === "program") {
+    await admin
+      .from("enrollments")
+      .upsert({ user_id: user.id, program_id: id }, { onConflict: "user_id,program_id" });
+    redirect("/dashboard/programs");
+  } else {
+    await admin
+      .from("resource_access")
+      .upsert({ user_id: user.id, resource_id: id }, { onConflict: "user_id,resource_id" });
+    redirect("/dashboard/resources");
+  }
+  return { error: "" };
+}
