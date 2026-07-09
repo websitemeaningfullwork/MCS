@@ -35,6 +35,10 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# local one-off scripts (may contain secrets — never commit)
+/_*.mjs
+/_*.js
+
 # vercel
 .vercel
 

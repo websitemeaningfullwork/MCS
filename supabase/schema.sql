@@ -315,7 +315,9 @@ after insert on auth.users
 for each row execute function public.handle_new_user();
 
 -- ===== Helper: is_admin() =====
+-- SECURITY DEFINER so the internal read of public.profiles bypasses RLS and
+-- does NOT recurse through the profiles policies that themselves call is_admin().
 create or replace function public.is_admin() returns boolean
-language sql stable as $$
+language sql stable security definer set search_path = public as $$
   select coalesce((select role='admin' from public.profiles where id = auth.uid()), false)
 $$;
