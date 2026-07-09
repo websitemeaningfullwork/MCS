@@ -57,7 +57,7 @@ export default async function ResourceDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
-      <div className="grid gap-10 md:grid-cols-[1fr_1.4fr]">
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.4fr]">
         {/* Cover */}
         <div>
           <div className="flex aspect-[3/4] items-center justify-center rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15 shadow-card">

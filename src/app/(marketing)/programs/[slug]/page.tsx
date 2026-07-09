@@ -120,7 +120,7 @@ export default async function ProgramDetailPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       {/* Hero */}
-      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="secondary">{levelLabel(program.level)}</Badge>

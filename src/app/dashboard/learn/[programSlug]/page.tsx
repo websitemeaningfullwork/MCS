@@ -112,7 +112,7 @@ export default async function LearnPage({
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         {/* Player + content */}
         <div className="min-w-0 space-y-5">
           <div className="aspect-video overflow-hidden rounded-2xl border border-border bg-black">

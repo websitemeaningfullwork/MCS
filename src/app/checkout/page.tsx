@@ -70,7 +70,7 @@ export default async function CheckoutPage({
         Checkout
       </h1>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_1.2fr]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.2fr]">
         {/* Order summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-card">

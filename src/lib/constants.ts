@@ -14,6 +14,20 @@ export const COMMUNITY = {
   whatsapp: "https://chat.whatsapp.com/your-invite-code",
 };
 
+/** Program categories shown in the navbar Programs dropdown. */
+export const NAV_CATEGORIES = [
+  { slug: "university-admission", label: "University Admission", icon: "graduation-cap" },
+  { slug: "hsc", label: "HSC", icon: "book-open" },
+  { slug: "ssc", label: "SSC", icon: "book" },
+  { slug: "programming", label: "Programming", icon: "code" },
+  { slug: "ai", label: "AI", icon: "brain" },
+  { slug: "english", label: "English", icon: "languages" },
+  { slug: "career-development", label: "Career Development", icon: "briefcase" },
+  { slug: "productivity", label: "Productivity", icon: "zap" },
+  { slug: "soft-skills", label: "Soft Skills", icon: "users" },
+  { slug: "free-programs", label: "Free Programs", icon: "gift" },
+] as const;
+
 /** Homepage "Why MCA" pillars. */
 export const WHY_MCA = [
   {

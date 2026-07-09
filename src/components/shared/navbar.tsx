@@ -3,45 +3,45 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { Menu, Search, User } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  User,
+} from "lucide-react";
 
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LangToggle } from "@/components/shared/lang-toggle";
 import { useDict } from "@/components/shared/language-provider";
+import { CategoryIcon } from "@/components/marketing/category-icon";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from "@/components/ui/sheet";
-import { easeApple } from "@/lib/motion";
+import { signOut } from "@/features/auth/actions";
+import { NAV_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-function useNavLinks() {
-  const dict = useDict();
-  return [
-    { href: "/", label: dict.nav.home },
-    { href: "/programs", label: dict.nav.programs },
-    { href: "/mentors", label: dict.nav.mentors },
-    { href: "/resources", label: dict.nav.ebooks },
-    { href: "/live-classes", label: dict.nav.liveClasses },
-    { href: "/mock-tests", label: dict.nav.mockTests },
-    { href: "/community", label: dict.nav.community },
-    { href: "/blog", label: dict.nav.blog },
-    { href: "/about", label: dict.nav.about },
-    { href: "/contact", label: dict.nav.contact },
-  ];
-}
-
-export function Navbar() {
+export function Navbar({ authed }: { authed: boolean }) {
   const dict = useDict();
   const pathname = usePathname();
-  const links = useNavLinks();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -55,42 +55,105 @@ export function Navbar() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const primaryLinks = [
+    { href: "/mentors", label: dict.nav.mentors },
+    { href: "/resources", label: dict.nav.ebooks },
+    { href: "/live-classes", label: dict.nav.liveClasses },
+    { href: "/blog", label: dict.nav.blog },
+  ];
+
+  const allLinks = [
+    { href: "/", label: dict.nav.home },
+    { href: "/programs", label: dict.nav.programs },
+    { href: "/mentors", label: dict.nav.mentors },
+    { href: "/resources", label: dict.nav.ebooks },
+    { href: "/live-classes", label: dict.nav.liveClasses },
+    { href: "/mock-tests", label: dict.nav.mockTests },
+    { href: "/community", label: dict.nav.community },
+    { href: "/blog", label: dict.nav.blog },
+    { href: "/about", label: dict.nav.about },
+    { href: "/contact", label: dict.nav.contact },
+  ];
+
+  const linkClass = (active: boolean) =>
+    cn(
+      "rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+      active
+        ? "bg-secondary text-foreground"
+        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+    );
+
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: easeApple }}
-      className="fixed inset-x-0 top-4 z-50 px-4"
-    >
+    <header className="fixed inset-x-0 top-4 z-50 px-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-300">
       <nav
+        aria-label="Primary"
         className={cn(
           "glass mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-2xl px-3 py-2 transition-shadow duration-300 sm:px-4",
           scrolled && "shadow-card",
         )}
-        aria-label="Primary"
       >
         <Logo />
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-0.5 lg:flex">
-          {links.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className={cn(
-                  "rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors",
-                  isActive(link.href)
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="hidden items-center gap-0.5 lg:flex">
+          {/* Programs dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                "inline-flex items-center gap-1",
+                linkClass(isActive("/programs")),
+              )}
+            >
+              {dict.nav.programs}
+              <ChevronDown className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[440px] p-3">
+              <div className="grid grid-cols-2 gap-1">
+                {NAV_CATEGORIES.map((cat) => (
+                  <DropdownMenuItem key={cat.slug} asChild>
+                    <Link
+                      href={`/programs?category=${cat.slug}`}
+                      className="flex items-center gap-2.5"
+                    >
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <CategoryIcon name={cat.icon} className="size-4" />
+                      </span>
+                      <span className="text-sm">{cat.label}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+              <DropdownMenuSeparator />
+              <div className="flex items-center justify-between px-1">
+                <Link
+                  href="/programs"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  View all programs →
+                </Link>
+                <Link
+                  href="/mock-tests"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Mock Tests
+                </Link>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {/* Right-side controls */}
+          {primaryLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isActive(link.href) ? "page" : undefined}
+              className={linkClass(isActive(link.href))}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Right controls */}
         <div className="flex items-center gap-1">
           <Button
             asChild
@@ -110,12 +173,56 @@ export function Navbar() {
 
           <ThemeToggle />
 
-          <Button asChild size="sm" className="hidden rounded-full sm:inline-flex">
-            <Link href="/login">
-              <User className="size-4" />
-              {dict.nav.login}
-            </Link>
-          </Button>
+          {/* Auth-aware profile / login */}
+          {authed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Account menu"
+                  className="rounded-full"
+                >
+                  <User className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">
+                    <LayoutDashboard className="size-4" />
+                    {dict.nav.dashboard}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings">
+                    <Settings className="size-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <form action={signOut} className="w-full">
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 text-left"
+                    >
+                      <LogOut className="size-4" />
+                      Sign out
+                    </button>
+                  </form>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild size="sm" className="hidden rounded-full sm:inline-flex">
+              <Link href="/login">
+                <User className="size-4" />
+                {dict.nav.login}
+              </Link>
+            </Button>
+          )}
 
           {/* Mobile menu */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -129,18 +236,19 @@ export function Navbar() {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80">
+            <SheetContent side="right" className="w-80 overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>
+                <SheetTitle className="text-left">
                   <Logo />
                 </SheetTitle>
               </SheetHeader>
               <ul className="mt-2 flex flex-col gap-1 px-4">
-                {links.map((link) => (
+                {allLinks.map((link) => (
                   <li key={link.href}>
                     <SheetClose asChild>
                       <Link
                         href={link.href}
+                        aria-current={isActive(link.href) ? "page" : undefined}
                         className={cn(
                           "block rounded-lg px-3 py-2 text-base font-medium transition-colors",
                           isActive(link.href)
@@ -158,9 +266,9 @@ export function Navbar() {
                 <LangToggle />
                 <SheetClose asChild>
                   <Button asChild size="sm" className="rounded-full">
-                    <Link href="/login">
+                    <Link href={authed ? "/dashboard" : "/login"}>
                       <User className="size-4" />
-                      {dict.nav.login}
+                      {authed ? dict.nav.dashboard : dict.nav.login}
                     </Link>
                   </Button>
                 </SheetClose>
@@ -169,6 +277,6 @@ export function Navbar() {
           </Sheet>
         </div>
       </nav>
-    </motion.header>
+    </header>
   );
 }

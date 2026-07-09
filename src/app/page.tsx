@@ -89,7 +89,7 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-6xl px-4">
       {/* 1. Hero */}
-      <section className="grid items-center gap-10 py-16 sm:py-24 lg:grid-cols-2">
+      <section className="grid grid-cols-1 items-center gap-10 py-16 sm:py-24 lg:grid-cols-2">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground shadow-card">
             <Sparkles className="size-4 text-primary" />
