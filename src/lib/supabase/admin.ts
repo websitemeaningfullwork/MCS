@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 function required(name: string, value: string | undefined): string {
   if (!value) throw new Error(`Missing environment variable: ${name}`);
@@ -21,7 +22,7 @@ export function createAdminClient() {
     throw new Error("createAdminClient() must never run in the browser.");
   }
 
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
     required(
       "SUPABASE_SERVICE_ROLE_KEY",
