@@ -31,6 +31,9 @@ alter table public.payment_settings            enable row level security;
 -- Profiles
 create policy "profiles: read own or admin"  on public.profiles for select
   using (auth.uid() = id or public.is_admin());
+-- Mentor profiles are part of the public mentor directory (name, photo, bio).
+create policy "profiles: public read mentors" on public.profiles for select
+  using (role = 'mentor');
 create policy "profiles: update own or admin" on public.profiles for update
   using (auth.uid() = id or public.is_admin());
 
