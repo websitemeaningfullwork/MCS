@@ -7,7 +7,7 @@ import {
   Star,
 } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { ProgramCard } from "@/components/marketing/program-card";
 import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-card";
@@ -17,20 +17,22 @@ import { Reveal } from "@/components/marketing/reveal";
 import { WHY_MCA, TESTIMONIALS, COMMUNITY } from "@/lib/constants";
 import { formatBDT } from "@/lib/format";
 
+// The homepage shows only public, anon-readable content, so it is statically
+// prerendered and revalidated every 5 minutes (served from the CDN) instead of
+// re-querying the database on every request. Auth-aware UI lives in the client
+// navbar island, so nothing here depends on the signed-in user.
+export const revalidate = 300;
+
 export default async function HomePage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [
-    {
-      data: { user },
-    },
     categoriesRes,
     programsRes,
     mentorRowsRes,
     liveRes,
     ebooksRes,
   ] = await Promise.all([
-    supabase.auth.getUser(),
     supabase.from("categories").select("*").order("sort_order"),
     supabase
       .from("programs")
@@ -84,7 +86,9 @@ export default async function HomePage() {
     avatar_url: profileById.get(m.id)?.avatar_url ?? null,
   }));
 
-  const askHref = user ? "/dashboard/questions/new" : "/login?next=/dashboard/questions/new";
+  // Static link for everyone: the proxy redirects logged-out visitors to
+  // /login?next=… and returns them here after auth.
+  const askHref = "/dashboard/questions/new";
 
   return (
     <div className="mx-auto max-w-6xl px-4">
