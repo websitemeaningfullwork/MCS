@@ -55,6 +55,26 @@ export async function submitManualPayment(
   if (!item) return { error: "This item is not available." };
   if (item.price <= 0) return { error: "This item is free — no payment needed." };
 
+  // Reject if the user already owns this item — avoids double payment and
+  // duplicate review requests. RLS lets a user read their own access rows.
+  if (type === "program") {
+    const { data: owned } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("program_id", id)
+      .maybeSingle();
+    if (owned) return { error: "You already have access to this program." };
+  } else {
+    const { data: owned } = await supabase
+      .from("resource_access")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("resource_id", id)
+      .maybeSingle();
+    if (owned) return { error: "You already have access to this resource." };
+  }
+
   // A screenshot path (optional) must live in the caller's own folder — never
   // trust an arbitrary client-supplied path pointing at another user's files.
   let safeScreenshotPath: string | null = null;

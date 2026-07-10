@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 
@@ -44,11 +45,12 @@ export function ProgramCard({
       {/* Cover */}
       <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15">
         {program.cover_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={program.cover_url}
             alt={program.title}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex size-full items-center justify-center">

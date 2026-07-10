@@ -27,6 +27,8 @@ const schema = z.object({
   meeting_url: z.string().optional(),
   replay_url: z.string().optional(),
   is_public: z.boolean(),
+  mentor_id: z.string().uuid().nullish(),
+  program_id: z.string().uuid().nullish(),
 });
 
 export type LiveClassInput = z.infer<typeof schema>;
@@ -46,6 +48,8 @@ export async function saveLiveClass(input: LiveClassInput): Promise<{ error?: st
     meeting_url: d.meeting_url ?? null,
     replay_url: d.replay_url ?? null,
     is_public: d.is_public,
+    mentor_id: d.mentor_id ?? null,
+    program_id: d.program_id ?? null,
   };
 
   const { error } = d.id

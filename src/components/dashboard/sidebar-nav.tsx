@@ -26,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   programs: GraduationCap,
   resources: BookOpen,
+  bookmarks: BookMarked,
   orders: Receipt,
   questions: MessageCircleQuestion,
   settings: Settings,

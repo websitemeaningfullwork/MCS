@@ -6,6 +6,8 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, emailEnabled, escapeHtml } from "@/lib/email";
+import { absoluteUrl } from "@/lib/site-url";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -52,6 +54,30 @@ export async function createMentor(input: {
     .update({ role: "mentor", full_name: parsed.data.full_name })
     .eq("id", userId);
   await admin.from("mentors").upsert({ id: userId }, { onConflict: "id" });
+
+  // Best-effort invite: generate a recovery link so the mentor can set their own
+  // password, and email it via Resend. If email isn't configured, the admin can
+  // still tell them to use "Forgot password". Never block mentor creation on it.
+  if (emailEnabled()) {
+    const { data: link } = await admin.auth.admin.generateLink({
+      type: "recovery",
+      email: parsed.data.email,
+      options: { redirectTo: absoluteUrl("/auth/callback?next=/reset-password") },
+    });
+    const actionLink = link?.properties?.action_link;
+    if (actionLink) {
+      void sendEmail({
+        to: parsed.data.email,
+        subject: "You've been added as a mentor on Meaningful Career Academy",
+        html:
+          `<p>Hi ${escapeHtml(parsed.data.full_name)},</p>` +
+          `<p>An admin has set up a mentor account for you on Meaningful Career ` +
+          `Academy. Click below to set your password and sign in:</p>` +
+          `<p><a href="${actionLink}">Set your password</a></p>` +
+          `<p>If you didn't expect this, you can ignore this email.</p>`,
+      });
+    }
+  }
 
   revalidatePath("/admin/mentors");
   redirect(`/admin/mentors/${userId}/edit`);

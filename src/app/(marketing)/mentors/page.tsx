@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-card";
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { Pagination, parsePage } from "@/components/marketing/pagination";
+
+const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
   title: "Mentors",
@@ -13,9 +16,10 @@ export const metadata: Metadata = {
 export default async function MentorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; expertise?: string }>;
+  searchParams: Promise<{ q?: string; expertise?: string; page?: string }>;
 }) {
-  const { q, expertise } = await searchParams;
+  const { q, expertise, page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
   const supabase = await createClient();
 
   const { data: mentorRows } = await supabase
@@ -61,6 +65,9 @@ export default async function MentorsPage({
     );
   }
 
+  const totalPages = Math.max(1, Math.ceil(mentors.length / PAGE_SIZE));
+  const pageMentors = mentors.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
       <header className="max-w-2xl">
@@ -90,11 +97,14 @@ export default async function MentorsPage({
           />
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {mentors.map((mentor) => (
-            <MentorCard key={mentor.id} mentor={mentor} />
-          ))}
-        </div>
+        <>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {pageMentors.map((mentor) => (
+              <MentorCard key={mentor.id} mentor={mentor} />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} />
+        </>
       )}
     </div>
   );

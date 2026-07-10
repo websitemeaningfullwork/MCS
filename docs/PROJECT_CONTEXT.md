@@ -87,8 +87,8 @@ src/
   lib/         supabase/{server,browser,admin}.ts, admin-guard.ts, mentor-guard.ts,
                constants.ts, format.ts, slug.ts, motion.ts, i18n.ts, utils.ts
   types/       database.types.ts  (hand-authored, matches supabase gen-types shape)
-  middleware.ts  session refresh + guards /dashboard,/mentor,/checkout (login) & /admin (role)
-supabase/      schema.sql, policies.sql, seed.sql, migrations/001..005
+  proxy.ts     (formerly middleware.ts) session refresh + guards /dashboard,/mentor,/checkout (login) & /admin (role)
+supabase/      migrations/000..007 (source of truth); schema.sql/policies.sql/seed.sql (reference)
 ```
 
 **Supabase clients:** `lib/supabase/server.ts` (RSC/actions, anon key + cookies),
@@ -109,43 +109,31 @@ navbar uses the `.glass` Liquid-Glass utility.
 
 ## 4. Database & migrations
 
-- Base schema: `supabase/schema.sql` → `policies.sql` → `seed.sql` (already
-  applied). RLS is **ON for every table**. Types: `src/types/database.types.ts`.
-- Incremental migrations in `supabase/migrations/` — **all applied to the live DB**:
+- `supabase/migrations/` is the **single source of truth** (run `000`→`007` in
+  order). RLS is **ON for every table**. Types: `src/types/database.types.ts`.
+  `schema.sql`/`policies.sql` are kept for reference only.
+  - `000` base schema + RLS (idempotent; reproduces schema.sql + policies.sql)
   - `001` public read of mentor profiles
   - `002` **fix `is_admin()` RLS recursion** (SECURITY DEFINER) — was a real bug
   - `003` storage buckets: `payment-screenshots` (private), `avatars` (public)
   - `004` `resource-files` private bucket
   - `005` mentor access: read/answer assigned questions + edit own mentor row
+  - `006` security hardening: public views, column-guard triggers, storage limits, constraints/indexes
+  - `007` scope `answers` INSERT to the question (P1 security)
 
-### Applying a new migration (no Supabase SQL editor needed)
-The direct connection resolves over **IPv4 via the pooler**, so we apply SQL from
-the machine. Recreate the (git-ignored) helper — it needs the **DB password** from
-Supabase → Settings → Database:
-
-```js
-// _migrate.mjs  (gitignored; do NOT commit — contains the DB password)
-import pg from "pg"; import { readFileSync } from "node:fs";
-const client = new pg.Client({
-  host: "aws-0-ap-southeast-1.pooler.supabase.com", port: 5432,
-  user: "postgres.vtfallczxbgdataohthu", password: "<DB_PASSWORD>",
-  database: "postgres", ssl: { rejectUnauthorized: false },
-});
-await client.connect();
-await client.query(readFileSync(process.argv[2], "utf8"));
-await client.end(); console.log("applied");
-```
-Run: `node _migrate.mjs supabase/migrations/00X_name.sql`. (`pg` is a devDependency.)
-
-> The **direct** host `db.<ref>.supabase.co` is IPv6-only here and won't connect —
-> always use the pooler host above.
+### Applying a new migration
+Preferred: `supabase db push` (Supabase CLI, linked project). Otherwise paste the
+migration into the Supabase SQL editor. A one-off `pg`-based helper can also be used
+locally — keep it **git-ignored** and pull host/user/password from Supabase →
+Settings → Database (connect via the **pooler** host, which is IPv4; the direct
+`db.<ref>.supabase.co` host is IPv6-only). Never commit connection details.
 
 ---
 
 ## 5. Accounts & credentials
 
-- **Admin login:** `websitemeaningfulwork@gmail.com` — credentials live in the
-  team secret manager (never commit them). **Rotate before public launch.**
+- **Admin login:** email + credentials live in the team secret manager (never
+  commit them). **Rotate before public launch.**
 - **Demo mentors** (seeded via service role, linked to programs):
   `ayesha.mentor@mca.demo`, `sabbir.mentor@mca.demo`, `farhana.mentor@mca.demo`
   — use the "Forgot password" flow to set a password, or promote a real user
@@ -199,7 +187,8 @@ reproduce server errors that only happen for logged-in users.
       password; update the new key in Vercel.
 - [ ] Set the **real bKash number**: Admin → Payment Settings (still placeholder
       `01XXXXXXXXX`).
-- [ ] Replace **community links** (Facebook/WhatsApp) in `src/lib/constants.ts`.
+- [ ] Set **community links** (Facebook/WhatsApp) via the
+      `NEXT_PUBLIC_COMMUNITY_FACEBOOK_URL` / `_WHATSAPP_URL` env vars in Vercel.
 - [ ] Re-enable **email confirmation** in Supabase Auth if it was turned off.
 - [ ] Replace demo mentors / seed content with real content.
 - [ ] (Optional) custom domain on Vercel + add it to Supabase Auth redirect URLs

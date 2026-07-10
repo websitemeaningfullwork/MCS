@@ -3,7 +3,10 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { Pagination, parsePage } from "@/components/marketing/pagination";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 12;
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -14,9 +17,10 @@ export const metadata: Metadata = {
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string }>;
+  searchParams: Promise<{ tag?: string; page?: string }>;
 }) {
-  const { tag } = await searchParams;
+  const { tag, page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
   const supabase = await createClient();
 
   const { data: postsData } = await supabase
@@ -31,6 +35,9 @@ export default async function BlogPage({
   const tags = [...tagSet].sort();
 
   if (tag) posts = posts.filter((p) => (p.tags ?? []).includes(tag));
+
+  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+  const pagePosts = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-14">
@@ -79,8 +86,9 @@ export default async function BlogPage({
           <EmptyState title="No posts yet" description="Check back soon for new articles." />
         </div>
       ) : (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          {posts.map((post) => (
+        <>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          {pagePosts.map((post) => (
             <Link
               key={post.id}
               href={`/blog/${post.slug}`}
@@ -112,7 +120,9 @@ export default async function BlogPage({
               </div>
             </Link>
           ))}
-        </div>
+          </div>
+          <Pagination page={page} totalPages={totalPages} />
+        </>
       )}
     </div>
   );

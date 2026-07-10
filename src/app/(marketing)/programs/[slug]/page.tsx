@@ -20,6 +20,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { BookmarkButton } from "@/components/shared/bookmark-button";
 import { formatBDT, effectivePriceBDT, hasDiscount, levelLabel } from "@/lib/format";
 
 async function getProgram(slug: string) {
@@ -110,6 +111,21 @@ export default async function ProgramDetailPage({
     : { data: [] };
   const lessons = lessonsData ?? [];
   const totalLessons = lessons.length;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let bookmarked = false;
+  if (user) {
+    const { data: bm } = await supabase
+      .from("bookmarks")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .eq("item_type", "program")
+      .eq("item_id", program.id)
+      .maybeSingle();
+    bookmarked = Boolean(bm);
+  }
 
   const price = effectivePriceBDT(program.price_bdt, program.discount_bdt);
   const showDiscount = hasDiscount(program.price_bdt, program.discount_bdt);
@@ -330,6 +346,13 @@ export default async function ProgramDetailPage({
                 {price > 0 ? "Enrol now" : "Enrol for free"}
               </Link>
             </Button>
+
+            <BookmarkButton
+              itemType="program"
+              itemId={program.id}
+              initialBookmarked={bookmarked}
+              className="mt-3 w-full"
+            />
 
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">

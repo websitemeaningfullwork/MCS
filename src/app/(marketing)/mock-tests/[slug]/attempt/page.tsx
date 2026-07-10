@@ -17,7 +17,7 @@ export default async function AttemptPage({
 
   const { data: test } = await supabase
     .from("mock_tests")
-    .select("id, slug, title, is_free")
+    .select("id, slug, title, is_free, duration_minutes")
     .eq("slug", slug)
     .maybeSingle();
   if (!test) notFound();
@@ -47,7 +47,12 @@ export default async function AttemptPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <AttemptForm testId={test.id} title={test.title} questions={questions} />
+      <AttemptForm
+        testId={test.id}
+        title={test.title}
+        questions={questions}
+        durationMinutes={test.duration_minutes}
+      />
     </div>
   );
 }

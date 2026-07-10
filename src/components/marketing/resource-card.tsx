@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 
@@ -38,11 +39,12 @@ export function ResourceCard({
     >
       <div className="relative flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15">
         {resource.cover_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={resource.cover_url}
             alt={resource.title}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <BookOpen className="size-10 text-primary/40" />

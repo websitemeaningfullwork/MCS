@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { ResourceCard, RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { Pagination, parsePage } from "@/components/marketing/pagination";
 import type { Enums } from "@/types/database.types";
+
+const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
   title: "E-books & Resources",
@@ -22,21 +25,24 @@ const KIND_OPTIONS = [
 export default async function ResourcesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; kind?: string }>;
+  searchParams: Promise<{ q?: string; kind?: string; page?: string }>;
 }) {
-  const { q, kind } = await searchParams;
+  const { q, kind, page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
   const supabase = await createClient();
 
-  let query = supabase.from("public_resources").select("*");
+  let query = supabase.from("public_resources").select("*", { count: "exact" });
   if (kind && kind !== "all" && kind in RESOURCE_KIND_LABELS) {
     query = query.eq("kind", kind as Enums<"resource_kind">);
   }
   if (q) query = query.ilike("title", `%${q}%`);
 
-  const { data } = await query
+  const from = (page - 1) * PAGE_SIZE;
+  const { data, count } = await query
     .order("is_featured", { ascending: false })
-    .limit(60);
+    .range(from, from + PAGE_SIZE - 1);
   const resources = data ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
@@ -65,11 +71,14 @@ export default async function ResourcesPage({
           />
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-          {resources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
-          ))}
-        </div>
+        <>
+          <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            {resources.map((resource) => (
+              <ResourceCard key={resource.id} resource={resource} />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} />
+        </>
       )}
     </div>
   );

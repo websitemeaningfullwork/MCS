@@ -12,7 +12,7 @@ practical guide to running it.
 
 ## 1. Logging in as admin
 
-Admin email: `websitemeaningfulwork@gmail.com`
+Admin email: **stored in the team secret manager** (not committed here).
 
 The admin panel is at **/admin**. From there you control everything:
 
@@ -62,15 +62,19 @@ happens in an admin-gated server action.
 
 ## 4. Database schema & migrations
 
-- Base schema: `supabase/schema.sql` → `policies.sql` → `seed.sql`
-  (run once in the Supabase SQL editor, in that order).
-- Incremental changes live in `supabase/migrations/` and have been applied:
+`supabase/migrations/` is the **single source of truth**. Apply in filename order
+(`supabase db push`, or paste each into the SQL editor):
+  - `000` base schema + RLS (supersedes the old `schema.sql` + `policies.sql`)
   - `001` public mentor profiles
   - `002` fix `is_admin()` RLS recursion (SECURITY DEFINER)
   - `003` storage buckets (payment-screenshots, avatars)
   - `004` resource-files bucket
+  - `005` mentor access (assigned questions + own mentor row)
+  - `006` security hardening (public views, triggers, storage limits, constraints)
+  - `007` scope `answers` INSERT to the question
 
-Row Level Security is **ON for every table**.
+Row Level Security is **ON for every table**. `schema.sql`/`policies.sql` are kept
+for reference only.
 
 ---
 
@@ -80,8 +84,9 @@ Row Level Security is **ON for every table**.
       `service_role` key (Settings → API) and the database password
       (Settings → Database). Update the new `service_role` key in Vercel.
 - [ ] Set the **real bKash number** in Admin → Payment Settings.
-- [ ] Replace placeholder **community links** (Facebook / WhatsApp) in
-      `src/lib/constants.ts`.
+- [ ] Set the real **community links** (Facebook / WhatsApp) via the
+      `NEXT_PUBLIC_COMMUNITY_FACEBOOK_URL` / `NEXT_PUBLIC_COMMUNITY_WHATSAPP_URL`
+      env vars in Vercel (the buttons stay hidden until set).
 - [ ] Turn email confirmation back **on** in Supabase → Authentication (if you
       turned it off for testing).
 - [ ] Replace the 3 demo mentors / seed content with real content as needed.

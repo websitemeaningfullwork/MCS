@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   Settings,
   Shield,
   User,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/shared/logo";
+import { NavSearch } from "@/components/shared/nav-search";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LangToggle } from "@/components/shared/lang-toggle";
 import { useDict } from "@/components/shared/language-provider";
@@ -199,17 +199,7 @@ export function Navbar() {
 
         {/* Right controls */}
         <div className="flex items-center gap-1">
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            aria-label={dict.nav.search}
-            className="hidden sm:inline-flex"
-          >
-            <Link href="/programs">
-              <Search className="size-5" />
-            </Link>
-          </Button>
+          <NavSearch label={dict.nav.search} />
 
           <div className="hidden md:block">
             <LangToggle />

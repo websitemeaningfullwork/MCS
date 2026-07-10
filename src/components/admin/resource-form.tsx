@@ -23,6 +23,14 @@ import { RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 
 type Kind = ResourceInput["kind"];
 
+// Must match the `resource-files` storage bucket limits (migration 006).
+const MAX_RESOURCE_BYTES = 25 * 1024 * 1024; // 25 MB
+const ALLOWED_RESOURCE_TYPES = [
+  "application/pdf",
+  "application/epub+zip",
+  "application/zip",
+];
+
 export function ResourceForm({
   initial,
 }: {
@@ -56,6 +64,18 @@ export function ResourceForm({
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Validate before upload so the admin gets a clear message rather than a
+    // cryptic storage rejection from the bucket's size/MIME limits.
+    if (file.type && !ALLOWED_RESOURCE_TYPES.includes(file.type)) {
+      toast.error("File must be a PDF, EPUB, or ZIP.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_RESOURCE_BYTES) {
+      toast.error("File is too large (max 25 MB).");
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     const supabase = createClient();
     const path = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -175,7 +195,14 @@ export function ResourceForm({
             )}
             {filePath ? "File attached" : "Upload file"}
           </label>
-          <input id="file" type="file" className="sr-only" onChange={onFile} />
+          <input
+            id="file"
+            type="file"
+            accept="application/pdf,application/epub+zip,application/zip,.pdf,.epub,.zip"
+            className="sr-only"
+            onChange={onFile}
+          />
+          <p className="text-xs text-muted-foreground">PDF, EPUB, or ZIP · up to 25 MB</p>
         </div>
       </div>
 

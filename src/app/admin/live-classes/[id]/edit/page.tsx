@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { requireAdmin } from "@/lib/admin-guard";
 import { LiveClassForm } from "@/components/admin/live-class-form";
+import { loadLiveClassOptions } from "../../options";
 
 export const metadata: Metadata = { title: "Edit live class" };
 
@@ -23,6 +24,8 @@ export default async function EditLiveClassPage({
     .maybeSingle();
   if (!lc) notFound();
 
+  const { mentors, programs } = await loadLiveClassOptions(supabase);
+
   return (
     <div className="space-y-6">
       <Link
@@ -36,6 +39,8 @@ export default async function EditLiveClassPage({
         Edit live class
       </h1>
       <LiveClassForm
+        mentors={mentors}
+        programs={programs}
         initial={{
           id: lc.id,
           title: lc.title,
@@ -44,6 +49,8 @@ export default async function EditLiveClassPage({
           meeting_url: lc.meeting_url ?? "",
           replay_url: lc.replay_url ?? "",
           is_public: lc.is_public ?? true,
+          mentor_id: lc.mentor_id ?? null,
+          program_id: lc.program_id ?? null,
         }}
       />
     </div>

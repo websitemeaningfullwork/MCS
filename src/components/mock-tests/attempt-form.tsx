@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, Clock, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -21,30 +21,69 @@ export function AttemptForm({
   testId,
   title,
   questions,
+  durationMinutes,
 }: {
   testId: string;
   title: string;
   questions: Question[];
+  durationMinutes?: number | null;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(
+    durationMinutes && durationMinutes > 0 ? durationMinutes * 60 : null,
+  );
+
+  // Refs so the timer's auto-submit reads the latest answers / guards without
+  // re-creating the interval on every keystroke. Synced in an effect (never
+  // written during render).
+  const answersRef = useRef(answers);
+  const submittedRef = useRef(false);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  const doSubmit = useCallback(
+    async (force: boolean) => {
+      if (submittedRef.current) return;
+      if (!force && Object.keys(answersRef.current).length < questions.length) {
+        toast.error("Please answer all questions before submitting.");
+        return;
+      }
+      submittedRef.current = true;
+      setSubmitting(true);
+      const res = await submitAttempt(testId, answersRef.current);
+      if ("error" in res) {
+        toast.error(res.error);
+        submittedRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+      setResult(res);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [questions.length, testId],
+  );
+
+  // Countdown: ticks down and auto-submits (whatever is answered) at zero.
+  useEffect(() => {
+    if (secondsLeft === null) return;
+    if (secondsLeft <= 0) {
+      toast.info("Time's up — submitting your answers.");
+      void doSubmit(true);
+      return;
+    }
+    const t = setTimeout(() => setSecondsLeft((s) => (s === null ? s : s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [secondsLeft, doSubmit]);
 
   async function handleSubmit() {
-    if (Object.keys(answers).length < questions.length) {
-      toast.error("Please answer all questions before submitting.");
-      return;
-    }
-    setSubmitting(true);
-    const res = await submitAttempt(testId, answers);
-    if ("error" in res) {
-      toast.error(res.error);
-      setSubmitting(false);
-      return;
-    }
-    setResult(res);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    await doSubmit(false);
   }
+
+  const mm = secondsLeft !== null ? Math.floor(secondsLeft / 60) : 0;
+  const ss = secondsLeft !== null ? secondsLeft % 60 : 0;
 
   if (result) {
     const pct = Math.round((result.score / result.total) * 100);
@@ -115,13 +154,30 @@ export function AttemptForm({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Answer all {questions.length} questions, then submit.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Answer all {questions.length} questions, then submit.
+          </p>
+        </div>
+        {secondsLeft !== null ? (
+          <div
+            role="timer"
+            aria-live="polite"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium tabular-nums",
+              secondsLeft <= 30
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-border bg-card text-foreground",
+            )}
+          >
+            <Clock className="size-4" />
+            {mm}:{String(ss).padStart(2, "0")}
+          </div>
+        ) : null}
       </header>
 
       <div className="space-y-4">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookOpen, Check, Download, FileText } from "lucide-react";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResourceCard, RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 import { SectionHeading } from "@/components/marketing/section-heading";
+import { BookmarkButton } from "@/components/shared/bookmark-button";
 import { formatBDT } from "@/lib/format";
 
 async function getResource(slug: string) {
@@ -45,6 +47,21 @@ export default async function ResourceDetailPage({
   const resource = await getResource(slug);
   if (!resource) notFound();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let bookmarked = false;
+  if (user) {
+    const { data: bm } = await supabase
+      .from("bookmarks")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .eq("item_type", "resource")
+      .eq("item_id", resource.id)
+      .maybeSingle();
+    bookmarked = Boolean(bm);
+  }
+
   const { data: related } = await supabase
     .from("public_resources")
     .select("*")
@@ -60,13 +77,14 @@ export default async function ResourceDetailPage({
       <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.4fr]">
         {/* Cover */}
         <div>
-          <div className="flex aspect-[3/4] items-center justify-center rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15 shadow-card">
+          <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15 shadow-card">
             {resource.cover_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={resource.cover_url}
                 alt={resource.title}
-                className="size-full rounded-2xl object-cover"
+                fill
+                sizes="(min-width: 768px) 40vw, 100vw"
+                className="rounded-2xl object-cover"
               />
             ) : (
               <BookOpen className="size-12 text-primary/40" />
@@ -107,7 +125,7 @@ export default async function ResourceDetailPage({
             </span>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             {isFree ? (
               resource.external_url ? (
                 <Button asChild size="lg" className="rounded-full">
@@ -133,6 +151,11 @@ export default async function ResourceDetailPage({
                 <Link href={buyHref}>Buy now</Link>
               </Button>
             )}
+            <BookmarkButton
+              itemType="resource"
+              itemId={resource.id}
+              initialBookmarked={bookmarked}
+            />
           </div>
 
           <ul className="mt-8 space-y-2 text-sm text-muted-foreground">

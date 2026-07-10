@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 
 import { requireAdmin } from "@/lib/admin-guard";
 import { LiveClassForm } from "@/components/admin/live-class-form";
+import { loadLiveClassOptions } from "../options";
 
 export const metadata: Metadata = { title: "New live class" };
 
 export default async function NewLiveClassPage() {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const { mentors, programs } = await loadLiveClassOptions(supabase);
   return (
     <div className="space-y-6">
       <Link
@@ -21,7 +23,7 @@ export default async function NewLiveClassPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         New live class
       </h1>
-      <LiveClassForm />
+      <LiveClassForm mentors={mentors} programs={programs} />
     </div>
   );
 }

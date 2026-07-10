@@ -35,6 +35,8 @@ export function FilterBar({
   function navigate(mutate: (params: URLSearchParams) => void) {
     const params = new URLSearchParams(window.location.search);
     mutate(params);
+    // Any search/filter change returns to the first page.
+    params.delete("page");
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }

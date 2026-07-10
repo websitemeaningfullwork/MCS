@@ -22,6 +22,10 @@ const formSchema = z.object({
 });
 type FormValues = z.infer<typeof formSchema>;
 
+// Must match the `avatars` storage bucket limits (migration 006).
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
 export function SettingsForm({
   userId,
   initialName,
@@ -50,6 +54,18 @@ export function SettingsForm({
   async function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Validate before upload so users get a clear message instead of a cryptic
+    // storage rejection from the bucket's size/MIME limits.
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      toast.error("Photo must be a PNG, JPEG, or WebP image.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Photo is too large (max 5 MB).");
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     const supabase = createClient();
     const ext = file.name.split(".").pop() ?? "png";
@@ -118,11 +134,12 @@ export function SettingsForm({
           <input
             id="avatar"
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             className="sr-only"
             onChange={onAvatarChange}
             disabled={uploading}
           />
+          <p className="mt-1 text-xs text-muted-foreground">PNG, JPEG, or WebP · up to 5 MB</p>
         </div>
       </div>
 

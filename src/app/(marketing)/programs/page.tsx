@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { ProgramCard } from "@/components/marketing/program-card";
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { Pagination, parsePage } from "@/components/marketing/pagination";
+
+const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
   title: "Programs",
@@ -13,9 +16,10 @@ export const metadata: Metadata = {
 export default async function ProgramsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
 }) {
-  const { q, category } = await searchParams;
+  const { q, category, page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
   const supabase = await createClient();
 
   const { data: categories } = await supabase
@@ -25,7 +29,7 @@ export default async function ProgramsPage({
 
   let query = supabase
     .from("programs")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("status", "published");
 
   if (category && category !== "all") {
@@ -34,10 +38,12 @@ export default async function ProgramsPage({
   }
   if (q) query = query.ilike("title", `%${q}%`);
 
-  const { data: programsData } = await query
+  const from = (page - 1) * PAGE_SIZE;
+  const { data: programsData, count } = await query
     .order("is_featured", { ascending: false })
-    .limit(60);
+    .range(from, from + PAGE_SIZE - 1);
   const programs = programsData ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   // Resolve mentor display names.
   const mentorIds = [
@@ -82,15 +88,18 @@ export default async function ProgramsPage({
           />
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {programs.map((program) => (
-            <ProgramCard
-              key={program.id}
-              program={program}
-              mentorName={program.mentor_id ? nameById.get(program.mentor_id) : null}
-            />
-          ))}
-        </div>
+        <>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {programs.map((program) => (
+              <ProgramCard
+                key={program.id}
+                program={program}
+                mentorName={program.mentor_id ? nameById.get(program.mentor_id) : null}
+              />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} />
+        </>
       )}
     </div>
   );
