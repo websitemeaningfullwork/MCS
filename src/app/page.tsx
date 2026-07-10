@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -124,7 +125,16 @@ export default async function HomePage() {
 
         {/* Hero visual */}
         <div className="relative hidden lg:block">
-          <div className="aspect-square rounded-3xl bg-gradient-to-br from-primary/20 via-secondary to-brand-hover/20 shadow-card" />
+          <div className="relative aspect-square overflow-hidden rounded-3xl shadow-card">
+            <Image
+              src="/images/hero-mentor-student.webp"
+              alt="A mentor guiding a student through a lesson on a laptop"
+              fill
+              priority
+              sizes="(min-width: 1024px) 40vw, 0px"
+              className="object-cover"
+            />
+          </div>
           <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-border bg-card/90 p-4 shadow-card backdrop-blur">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -285,23 +295,34 @@ export default async function HomePage() {
       {/* 7. Ask a mentor CTA */}
       <section className="py-14">
         <Reveal>
-          <div className="overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-brand-hover/10 p-8 text-center shadow-card sm:p-12">
-            <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <MessageCircleQuestion className="size-6" />
-            </span>
-            <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Stuck on something? Ask a mentor.
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Get personal, thoughtful answers to your learning and career
-              questions — usually within 24–48 hours.
-            </p>
-            <Button asChild size="lg" className="mt-6 rounded-full">
-              <Link href={askHref}>
-                Ask a Question
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+          <div className="grid items-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-brand-hover/10 shadow-card md:grid-cols-2">
+            <div className="p-8 sm:p-12">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <MessageCircleQuestion className="size-6" />
+              </span>
+              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Stuck on something? Ask a mentor.
+              </h2>
+              <p className="mt-3 max-w-xl text-muted-foreground">
+                Get personal, thoughtful answers to your learning and career
+                questions — usually within 24–48 hours.
+              </p>
+              <Button asChild size="lg" className="mt-6 rounded-full">
+                <Link href={askHref}>
+                  Ask a Question
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="relative min-h-64 md:min-h-full md:self-stretch">
+              <Image
+                src="/images/mentor-guidance.webp"
+                alt="A mentor giving one-on-one career guidance with a roadmap"
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
           </div>
         </Reveal>
       </section>
@@ -391,19 +412,26 @@ export default async function HomePage() {
       {/* 10. Community CTA */}
       <section className="py-14">
         <Reveal>
-          <div className="rounded-3xl border border-border bg-card p-8 shadow-card sm:p-12">
-            <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  Join our learning community
-                </h2>
-                <p className="mt-2 max-w-xl text-muted-foreground">
-                  Connect with fellow learners, share progress, and stay
-                  motivated together.
-                </p>
-              </div>
+          <div className="grid items-center overflow-hidden rounded-3xl border border-border bg-card shadow-card md:grid-cols-2">
+            <div className="relative min-h-64 md:min-h-full md:self-stretch">
+              <Image
+                src="/images/community-students.webp"
+                alt="A group of students collaborating and learning together"
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="p-8 sm:p-12">
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Join our learning community
+              </h2>
+              <p className="mt-2 max-w-xl text-muted-foreground">
+                Connect with fellow learners, share progress, and stay
+                motivated together.
+              </p>
               {COMMUNITY.facebook || COMMUNITY.whatsapp ? (
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   {COMMUNITY.facebook ? (
                     <Button asChild className="rounded-full">
                       <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
