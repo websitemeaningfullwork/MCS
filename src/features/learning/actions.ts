@@ -41,7 +41,7 @@ export async function markLessonComplete(
   }
 
   // lesson_progress is user-writable under RLS.
-  await supabase.from("lesson_progress").upsert(
+  const { error: progressErr } = await supabase.from("lesson_progress").upsert(
     {
       user_id: user.id,
       lesson_id: lessonId,
@@ -50,6 +50,10 @@ export async function markLessonComplete(
     },
     { onConflict: "user_id,lesson_id" },
   );
+  if (progressErr) {
+    console.error("markLessonComplete: lesson_progress upsert failed", progressErr);
+    return { error: "Could not save your progress. Please try again." };
+  }
 
   // Recompute program progress across all lessons.
   const { data: modules } = await supabase
@@ -78,7 +82,7 @@ export async function markLessonComplete(
   // enrollments.progress is admin-write only under RLS — update via service role
   // (safe: server verified this user's enrollment above).
   const admin = createAdminClient();
-  await admin
+  const { error: rollupErr } = await admin
     .from("enrollments")
     .update({
       progress,
@@ -86,6 +90,11 @@ export async function markLessonComplete(
     })
     .eq("user_id", user.id)
     .eq("program_id", programId);
+  // The lesson is already saved; a failed rollup only means the % is stale and
+  // will self-correct on the next completion. Log it, don't fail the action.
+  if (rollupErr) {
+    console.error("markLessonComplete: enrollment progress rollup failed", rollupErr);
+  }
 
   return {};
 }

@@ -38,6 +38,7 @@ const resourceSchema = z.object({
   file_storage_path: z.string().optional(),
   is_featured: z.boolean(),
   is_premium: z.boolean(),
+  status: z.enum(["draft", "published", "archived"]),
 });
 
 export type ResourceInput = z.infer<typeof resourceSchema>;
@@ -59,6 +60,7 @@ export async function saveResource(input: ResourceInput): Promise<{ error?: stri
     price_bdt: d.price_bdt,
     is_featured: d.is_featured,
     is_premium: d.is_premium,
+    status: d.status,
     ...(d.file_storage_path ? { file_storage_path: d.file_storage_path } : {}),
   };
 
@@ -78,7 +80,11 @@ export async function saveResource(input: ResourceInput): Promise<{ error?: stri
 export async function deleteResource(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("resources").delete().eq("id", id);
+  const { error } = await supabase.from("resources").delete().eq("id", id);
+  if (error) {
+    console.error("deleteResource: delete failed", error);
+    return { error: "Could not delete the resource. Please try again." };
+  }
   revalidatePath("/admin/resources");
   return {};
 }

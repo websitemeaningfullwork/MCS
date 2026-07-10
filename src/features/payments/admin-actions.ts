@@ -30,7 +30,7 @@ export async function approvePayment(
 
   const { data: sub } = await admin
     .from("manual_payment_submissions")
-    .select("id, order_id, user_id, status")
+    .select("id, order_id, user_id, status, paid_amount_bdt")
     .eq("id", submissionId)
     .maybeSingle();
   if (!sub || !sub.order_id || !sub.user_id) return { error: "Submission not found." };
@@ -83,31 +83,55 @@ export async function approvePayment(
     };
   }
 
+  // Guard against under-payment: the buyer-entered amount must at least cover the
+  // order total. (Over-payment is fine.) There is no silent override, so a short
+  // payment must be rejected and handled out-of-band with the buyer.
+  if (Math.round(sub.paid_amount_bdt) < Math.round(order.total_bdt)) {
+    return {
+      error: `Paid amount (৳${sub.paid_amount_bdt}) is less than the order total (৳${order.total_bdt}) — do not approve; reject instead.`,
+    };
+  }
+
+  // Grant access first. If any grant fails, abort BEFORE advancing the order or
+  // submission status — otherwise the buyer would be marked "paid/approved" with
+  // no access and no recovery path (re-approval short-circuits on "approved").
   for (const item of items ?? []) {
     if (!item.item_id) continue;
     if (item.item_type === "program") {
-      await admin
+      const { error } = await admin
         .from("enrollments")
         .upsert(
           { user_id: sub.user_id, program_id: item.item_id },
           { onConflict: "user_id,program_id" },
         );
+      if (error) {
+        console.error("approvePayment: enrollment grant failed", error);
+        return { error: "Could not grant program access — not approved. Please retry." };
+      }
     } else if (item.item_type === "resource") {
-      await admin
+      const { error } = await admin
         .from("resource_access")
         .upsert(
           { user_id: sub.user_id, resource_id: item.item_id, order_id: sub.order_id },
           { onConflict: "user_id,resource_id" },
         );
+      if (error) {
+        console.error("approvePayment: resource grant failed", error);
+        return { error: "Could not grant resource access — not approved. Please retry." };
+      }
     }
   }
 
-  await admin
+  const { error: orderErr } = await admin
     .from("orders")
     .update({ status: "paid", updated_at: new Date().toISOString() })
     .eq("id", sub.order_id);
+  if (orderErr) {
+    console.error("approvePayment: order status update failed", orderErr);
+    return { error: "Access was granted but the order status could not be updated. Please retry." };
+  }
 
-  await admin
+  const { error: subErr } = await admin
     .from("manual_payment_submissions")
     .update({
       status: "approved",
@@ -115,6 +139,10 @@ export async function approvePayment(
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", submissionId);
+  if (subErr) {
+    console.error("approvePayment: submission status update failed", subErr);
+    return { error: "Access was granted but the submission could not be finalized. Please retry." };
+  }
 
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${submissionId}`);
@@ -132,12 +160,47 @@ export async function rejectPayment(
 
   const { data: sub } = await admin
     .from("manual_payment_submissions")
-    .select("id, order_id, status")
+    .select("id, order_id, user_id, status")
     .eq("id", submissionId)
     .maybeSingle();
-  if (!sub || !sub.order_id) return { error: "Submission not found." };
+  if (!sub || !sub.order_id || !sub.user_id) return { error: "Submission not found." };
+  if (sub.status === "rejected") return {}; // idempotent
 
-  await admin
+  // If this payment was previously approved, access has already been granted.
+  // Rejecting it must REVOKE that access — otherwise the order shows "rejected"
+  // while the buyer keeps everything they were given.
+  if (sub.status === "approved") {
+    const { data: items } = await admin
+      .from("order_items")
+      .select("item_type, item_id")
+      .eq("order_id", sub.order_id);
+    for (const item of items ?? []) {
+      if (!item.item_id) continue;
+      if (item.item_type === "program") {
+        const { error } = await admin
+          .from("enrollments")
+          .delete()
+          .eq("user_id", sub.user_id)
+          .eq("program_id", item.item_id);
+        if (error) {
+          console.error("rejectPayment: enrollment revoke failed", error);
+          return { error: "Could not revoke program access — not rejected. Please retry." };
+        }
+      } else if (item.item_type === "resource") {
+        const { error } = await admin
+          .from("resource_access")
+          .delete()
+          .eq("user_id", sub.user_id)
+          .eq("resource_id", item.item_id);
+        if (error) {
+          console.error("rejectPayment: resource revoke failed", error);
+          return { error: "Could not revoke resource access — not rejected. Please retry." };
+        }
+      }
+    }
+  }
+
+  const { error: subErr } = await admin
     .from("manual_payment_submissions")
     .update({
       status: "rejected",
@@ -146,11 +209,19 @@ export async function rejectPayment(
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", submissionId);
+  if (subErr) {
+    console.error("rejectPayment: submission status update failed", subErr);
+    return { error: "Could not update the submission. Please retry." };
+  }
 
-  await admin
+  const { error: orderErr } = await admin
     .from("orders")
     .update({ status: "rejected", updated_at: new Date().toISOString() })
     .eq("id", sub.order_id);
+  if (orderErr) {
+    console.error("rejectPayment: order status update failed", orderErr);
+    return { error: "Could not update the order. Please retry." };
+  }
 
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${submissionId}`);

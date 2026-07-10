@@ -34,7 +34,12 @@ export async function GET(
     return NextResponse.redirect(new URL("/dashboard/resources", req.url));
   }
 
-  const { data: resource } = await supabase
+  // Read the file path with the service-role client: migration 006 dropped the
+  // public read policy on the `resources` base table, so a legitimately-entitled
+  // non-admin student would otherwise get zero rows here (fail-closed) and never
+  // reach their paid download. Ownership was already verified above.
+  const admin = createAdminClient();
+  const { data: resource } = await admin
     .from("resources")
     .select("file_storage_path")
     .eq("id", id)
@@ -43,7 +48,6 @@ export async function GET(
     return NextResponse.redirect(new URL("/dashboard/resources", req.url));
   }
 
-  const admin = createAdminClient();
   const { data: signed } = await admin.storage
     .from("resource-files")
     .createSignedUrl(resource.file_storage_path, 60 * 5);

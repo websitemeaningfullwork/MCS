@@ -65,7 +65,11 @@ export async function saveLiveClass(input: LiveClassInput): Promise<{ error?: st
 export async function deleteLiveClass(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("live_classes").delete().eq("id", id);
+  const { error } = await supabase.from("live_classes").delete().eq("id", id);
+  if (error) {
+    console.error("deleteLiveClass: delete failed", error);
+    return { error: "Could not delete the live class. Please try again." };
+  }
   revalidatePath("/admin/live-classes");
   return {};
 }

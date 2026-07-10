@@ -22,6 +22,13 @@ import { slugify } from "@/lib/slug";
 import { RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 
 type Kind = ResourceInput["kind"];
+type Status = ResourceInput["status"];
+
+const STATUS_LABELS: Record<Status, string> = {
+  draft: "Draft (hidden)",
+  published: "Published",
+  archived: "Archived (hidden)",
+};
 
 // Must match the `resource-files` storage bucket limits (migration 006).
 const MAX_RESOURCE_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -45,6 +52,7 @@ export function ResourceForm({
     file_storage_path: string | null;
     is_featured: boolean;
     is_premium: boolean;
+    status: Status;
   };
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -55,6 +63,7 @@ export function ResourceForm({
   const [price, setPrice] = useState(String(initial?.price_bdt ?? 0));
   const [featured, setFeatured] = useState(initial?.is_featured ?? false);
   const [premium, setPremium] = useState(initial?.is_premium ?? false);
+  const [status, setStatus] = useState<Status>(initial?.status ?? "published");
   const [filePath, setFilePath] = useState<string | null>(
     initial?.file_storage_path ?? null,
   );
@@ -106,6 +115,7 @@ export function ResourceForm({
       file_storage_path: filePath ?? undefined,
       is_featured: featured,
       is_premium: premium,
+      status,
     });
     if (res?.error) {
       toast.error(res.error);
@@ -204,6 +214,25 @@ export function ResourceForm({
           />
           <p className="text-xs text-muted-foreground">PDF, EPUB, or ZIP · up to 25 MB</p>
         </div>
+      </div>
+
+      <div className="space-y-2 sm:max-w-xs">
+        <Label>Visibility</Label>
+        <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Only <strong>Published</strong> resources appear on the public site.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-6">

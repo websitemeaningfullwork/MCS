@@ -1,9 +1,20 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export type McqOption = { key: string; label: string };
+
+// Bound the untrusted answers payload: map of question-id -> selected option key.
+// Caps key/value length and total size so a caller can't post a huge object.
+const answersSchema = z.record(
+  z.string().uuid(),
+  z.string().max(16),
+).refine((a) => Object.keys(a).length <= 500, {
+  message: "Too many answers.",
+});
 
 export type AttemptResult = {
   score: number;
@@ -32,6 +43,16 @@ export async function submitAttempt(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in to submit your attempt." };
+
+  // Validate the untrusted answers payload before doing any work.
+  const parsedAnswers = answersSchema.safeParse(answers);
+  if (!parsedAnswers.success) return { error: "Your answers could not be read. Please retry." };
+  answers = parsedAnswers.data;
+
+  // Throttle attempts per user (assessment integrity + insert-spam guard).
+  if (!(await rateLimitByIp(`attempt:${user.id}`, 10, 60_000))) {
+    return { error: "Too many attempts. Please wait a minute and try again." };
+  }
 
   // Gate access: only free tests are attemptable until a paid-test access
   // model exists. Prevents scoring paid assessments for free.
@@ -72,7 +93,7 @@ export async function submitAttempt(
     };
   });
 
-  await supabase.from("test_attempts").insert({
+  const { error: insertErr } = await supabase.from("test_attempts").insert({
     user_id: user.id,
     mock_test_id: testId,
     score,
@@ -80,6 +101,11 @@ export async function submitAttempt(
     answers,
     submitted_at: new Date().toISOString(),
   });
+  if (insertErr) {
+    console.error("submitAttempt: test_attempts insert failed", insertErr);
+    // The attempt was still scored — return the result rather than losing the
+    // user's work; the missing history row is logged for follow-up.
+  }
 
   return { score, total: questions.length, results };
 }

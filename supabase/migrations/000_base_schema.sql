@@ -2,12 +2,14 @@
 -- Migration 000 — base schema + RLS (single source of truth)
 --
 -- This is the FIRST migration. It creates every extension, enum, table,
--- trigger, helper function, and the ORIGINAL row-level-security policies.
--- Migrations 001–006 then patch on top, in order. Always run the full set
--- (000 → 006); running 000 alone re-introduces policies that 006 tightens.
+-- trigger, helper function, and the row-level-security policies.
+-- Migrations 001–007 then patch on top, in order. Always run the full set
+-- (000 → 007).
 --
--- Fully idempotent: safe to run against a fresh project OR an already-migrated
--- database (every statement is guarded / uses `if not exists`).
+-- Forward-safe: the policies that migrations 006/007 tighten are baked into this
+-- file in their HARDENED form (or intentionally left dropped-not-recreated), so
+-- re-running 000 on an already-migrated database no longer re-opens the P0/P1
+-- holes that 006/007 closed. Every statement is guarded / uses `if not exists`.
 --
 -- Supersedes the standalone supabase/schema.sql + supabase/policies.sql, which
 -- are kept only for reference.
@@ -363,9 +365,11 @@ alter table public.payment_settings            enable row level security;
 drop policy if exists "profiles: read own or admin" on public.profiles;
 create policy "profiles: read own or admin"  on public.profiles for select
   using (auth.uid() = id or public.is_admin());
+-- Superseded by migration 006 (P1 #5): public mentor reads go through the
+-- column-safe public_mentor_profiles view, never the base `profiles` table
+-- (which exposes email/phone). Intentionally NOT recreated here; the drop stays
+-- so re-running 000 removes any legacy copy instead of re-opening the leak.
 drop policy if exists "profiles: public read mentors" on public.profiles;
-create policy "profiles: public read mentors" on public.profiles for select
-  using (role = 'mentor');
 drop policy if exists "profiles: update own or admin" on public.profiles;
 create policy "profiles: update own or admin" on public.profiles for update
   using (auth.uid() = id or public.is_admin());
@@ -421,8 +425,11 @@ drop policy if exists "lesson_progress: own" on public.lesson_progress;
 create policy "lesson_progress: own" on public.lesson_progress for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- Superseded by migration 006: public resource reads go through the column-safe
+-- public_resources view (which hides file_storage_path and unpublished rows).
+-- Intentionally NOT recreated here; the drop stays so re-running 000 removes any
+-- legacy copy instead of re-exposing the base table.
 drop policy if exists "resources: public read" on public.resources;
-create policy "resources: public read" on public.resources for select using (true);
 drop policy if exists "resources: admin write" on public.resources;
 create policy "resources: admin write" on public.resources for all
   using (public.is_admin()) with check (public.is_admin());
@@ -437,9 +444,10 @@ create policy "resource_access: admin write" on public.resource_access for all
 drop policy if exists "orders: own or admin read" on public.orders;
 create policy "orders: own or admin read" on public.orders for select
   using (user_id = auth.uid() or public.is_admin());
+-- Superseded by migration 006 (P0 #3): orders are created ONLY server-side via
+-- the service role so clients can't craft self-priced order rows. Student INSERT
+-- intentionally NOT recreated; the drop stays to remove any legacy copy.
 drop policy if exists "orders: student insert own" on public.orders;
-create policy "orders: student insert own" on public.orders for insert
-  with check (user_id = auth.uid() and status = 'pending_verification');
 drop policy if exists "orders: admin update" on public.orders;
 create policy "orders: admin update" on public.orders for update
   using (public.is_admin()) with check (public.is_admin());
@@ -448,9 +456,9 @@ drop policy if exists "order_items: own or admin read" on public.order_items;
 create policy "order_items: own or admin read" on public.order_items for select
   using (exists(select 1 from public.orders o where o.id=order_id
                 and (o.user_id = auth.uid() or public.is_admin())));
+-- Superseded by migration 006 (P0 #3): order items are written only server-side
+-- via the service role. Student INSERT intentionally NOT recreated.
 drop policy if exists "order_items: student insert own" on public.order_items;
-create policy "order_items: student insert own" on public.order_items for insert
-  with check (exists(select 1 from public.orders o where o.id=order_id and o.user_id = auth.uid()));
 drop policy if exists "order_items: admin write" on public.order_items;
 create policy "order_items: admin write" on public.order_items for all
   using (public.is_admin()) with check (public.is_admin());
@@ -458,9 +466,9 @@ create policy "order_items: admin write" on public.order_items for all
 drop policy if exists "mps: own or admin read" on public.manual_payment_submissions;
 create policy "mps: own or admin read" on public.manual_payment_submissions for select
   using (user_id = auth.uid() or public.is_admin());
+-- Superseded by migration 006 (P0 #3): manual payment submissions are written
+-- only server-side via the service role. Student INSERT intentionally NOT recreated.
 drop policy if exists "mps: student insert own" on public.manual_payment_submissions;
-create policy "mps: student insert own" on public.manual_payment_submissions for insert
-  with check (user_id = auth.uid() and status = 'submitted');
 drop policy if exists "mps: admin update" on public.manual_payment_submissions;
 create policy "mps: admin update" on public.manual_payment_submissions for update
   using (public.is_admin()) with check (public.is_admin());
@@ -479,9 +487,24 @@ drop policy if exists "answers: read via question" on public.answers;
 create policy "answers: read via question" on public.answers for select
   using (exists(select 1 from public.questions q where q.id = question_id
                 and (q.student_id = auth.uid() or q.visibility='community' or public.is_admin())));
+-- Hardened form baked in from migration 007 (P1): an answer INSERT must be tied
+-- to a question the caller may actually participate in — not merely author_id =
+-- auth.uid(), which let any authenticated user inject replies onto any question.
 drop policy if exists "answers: auth insert" on public.answers;
 create policy "answers: auth insert" on public.answers for insert
-  with check (author_id = auth.uid());
+  with check (
+    author_id = auth.uid()
+    and exists (
+      select 1 from public.questions q
+      where q.id = question_id
+        and (
+          q.student_id = auth.uid()
+          or q.mentor_id = auth.uid()
+          or q.visibility = 'community'
+          or public.is_admin()
+        )
+    )
+  );
 
 drop policy if exists "live: public read" on public.live_classes;
 create policy "live: public read" on public.live_classes for select
@@ -495,9 +518,10 @@ create policy "mocks: public read" on public.mock_tests for select using (true);
 drop policy if exists "mocks: admin write" on public.mock_tests;
 create policy "mocks: admin write" on public.mock_tests for all
   using (public.is_admin()) with check (public.is_admin());
+-- Superseded by migration 006 (P0 #4): the base read exposed correct_key. Public
+-- reads go through the sanitized public_mock_questions view; scoring reads keys
+-- only via the service role. Intentionally NOT recreated; the drop stays.
 drop policy if exists "mockq: read via test" on public.mock_questions;
-create policy "mockq: read via test" on public.mock_questions for select
-  using (exists(select 1 from public.mock_tests m where m.id = mock_test_id));
 drop policy if exists "mockq: admin write" on public.mock_questions;
 create policy "mockq: admin write" on public.mock_questions for all
   using (public.is_admin()) with check (public.is_admin());

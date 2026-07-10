@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate-env": "node scripts/validate-env.mjs",
+    "validate-env:strict": "node scripts/validate-env.mjs --strict",
     "check": "npm run validate-env && npm run lint && npm run typecheck && npm run test"
   },
   "engines": {
@@ -47,11 +48,13 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "pg": "^8.22.0",
     "prettier": "^3.9.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "postcss": ">=8.5.10"
   }
 }

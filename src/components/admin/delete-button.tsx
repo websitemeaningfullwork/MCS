@@ -10,10 +10,13 @@ export function DeleteButton({
   id,
   onDelete,
   size = "sm",
+  label,
 }: {
   id: string;
   onDelete: (id: string) => Promise<{ error?: string }>;
   size?: "sm" | "default";
+  /** Optional item name, e.g. the title — makes the icon button's accessible name specific. */
+  label?: string;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -62,6 +65,8 @@ export function DeleteButton({
       variant="ghost"
       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
       onClick={() => setConfirming(true)}
+      aria-label={label ? `Delete ${label}` : "Delete"}
+      title={label ? `Delete ${label}` : "Delete"}
     >
       <Trash2 className="size-4" />
     </Button>

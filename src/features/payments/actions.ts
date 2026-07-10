@@ -111,6 +111,9 @@ export async function submitManualPayment(
     return { error: "Could not create your order. Please try again." };
   }
 
+  // These three rows aren't a single transaction (Supabase JS can't span one),
+  // so on any later failure we delete the just-created order to avoid leaving an
+  // orphan `pending_verification` order with no submission (order_items cascades).
   const { error: itemErr } = await admin.from("order_items").insert({
     order_id: order.id,
     item_type: type,
@@ -118,7 +121,10 @@ export async function submitManualPayment(
     title: item.title,
     price_bdt: item.price,
   });
-  if (itemErr) return { error: "Could not save your order. Please try again." };
+  if (itemErr) {
+    await admin.from("orders").delete().eq("id", order.id);
+    return { error: "Could not save your order. Please try again." };
+  }
 
   const { error: subErr } = await admin.from("manual_payment_submissions").insert({
     order_id: order.id,
@@ -130,7 +136,17 @@ export async function submitManualPayment(
     screenshot_path: safeScreenshotPath,
     status: "submitted",
   });
-  if (subErr) return { error: "Could not submit your payment. Please try again." };
+  if (subErr) {
+    await admin.from("orders").delete().eq("id", order.id);
+    // The active-transaction-id unique index (migration 006) is the common cause:
+    // give the user a clear message instead of a generic failure.
+    if (subErr.code === "23505") {
+      return {
+        error: "That transaction ID has already been submitted. Check your orders, or use the correct bKash TrxID.",
+      };
+    }
+    return { error: "Could not submit your payment. Please try again." };
+  }
 
   redirect(`/dashboard/orders/${order.id}`);
 }
@@ -153,14 +169,22 @@ export async function enrollFree(
   // Access grants bypass RLS (admin-only writes) — safe: server verified the item is free.
   const admin = createAdminClient();
   if (type === "program") {
-    await admin
+    const { error } = await admin
       .from("enrollments")
       .upsert({ user_id: user.id, program_id: id }, { onConflict: "user_id,program_id" });
+    if (error) {
+      console.error("enrollFree: enrollment upsert failed", error);
+      return { error: "Could not enroll you. Please try again." };
+    }
     redirect("/dashboard/programs");
   } else {
-    await admin
+    const { error } = await admin
       .from("resource_access")
       .upsert({ user_id: user.id, resource_id: id }, { onConflict: "user_id,resource_id" });
+    if (error) {
+      console.error("enrollFree: resource_access upsert failed", error);
+      return { error: "Could not grant access. Please try again." };
+    }
     redirect("/dashboard/resources");
   }
   return { error: "" };

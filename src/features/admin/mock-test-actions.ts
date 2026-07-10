@@ -75,7 +75,11 @@ export async function saveMockTest(input: MockTestInput): Promise<{ error?: stri
 export async function deleteMockTest(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("mock_tests").delete().eq("id", id);
+  const { error } = await supabase.from("mock_tests").delete().eq("id", id);
+  if (error) {
+    console.error("deleteMockTest: delete failed", error);
+    return { error: "Could not delete the mock test. Please try again." };
+  }
   revalidatePath("/admin/mock-tests");
   return {};
 }

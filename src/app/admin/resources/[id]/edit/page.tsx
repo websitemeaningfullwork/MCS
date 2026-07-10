@@ -48,6 +48,7 @@ export default async function EditResourcePage({
           file_storage_path: resource.file_storage_path,
           is_featured: resource.is_featured ?? false,
           is_premium: resource.is_premium ?? false,
+          status: (resource.status ?? "published") as ResourceInput["status"],
         }}
       />
     </div>

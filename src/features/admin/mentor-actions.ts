@@ -127,8 +127,23 @@ export async function saveMentor(input: {
 export async function deleteMentor(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("mentors").delete().eq("id", id);
-  await supabase.from("profiles").update({ role: "student" }).eq("id", id);
+  const { error } = await supabase.from("mentors").delete().eq("id", id);
+  if (error) {
+    console.error("deleteMentor: delete failed", error);
+    return {
+      error:
+        "Could not remove this mentor — they may still be linked to programs, " +
+        "questions, or live classes. Reassign those first.",
+    };
+  }
+  const { error: roleErr } = await supabase
+    .from("profiles")
+    .update({ role: "student" })
+    .eq("id", id);
+  if (roleErr) {
+    console.error("deleteMentor: role reset failed", roleErr);
+    return { error: "Mentor removed, but their role could not be reset. Please retry." };
+  }
   revalidatePath("/admin/mentors");
   return {};
 }

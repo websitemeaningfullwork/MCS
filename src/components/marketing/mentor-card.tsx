@@ -56,7 +56,7 @@ export function MentorCard({
           {mentor.full_name ?? "MCA Mentor"}
         </h3>
         {mentor.is_verified ? (
-          <BadgeCheck className="size-4 text-primary" aria-label="Verified mentor" />
+          <BadgeCheck className="size-4 text-primary" role="img" aria-label="Verified mentor" />
         ) : null}
       </div>
 

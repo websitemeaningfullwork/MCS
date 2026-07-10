@@ -90,7 +90,11 @@ export async function saveProgram(input: ProgramInput): Promise<{ error?: string
 export async function deleteProgram(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("programs").delete().eq("id", id);
+  const { error } = await supabase.from("programs").delete().eq("id", id);
+  if (error) {
+    console.error("deleteProgram: delete failed", error);
+    return { error: "Could not delete the program. Please try again." };
+  }
   revalidatePath("/admin/programs");
   return {};
 }
@@ -120,7 +124,11 @@ export async function deleteModule(
 ): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("modules").delete().eq("id", moduleId);
+  const { error } = await supabase.from("modules").delete().eq("id", moduleId);
+  if (error) {
+    console.error("deleteModule: delete failed", error);
+    return { error: "Could not delete the module. Please try again." };
+  }
   revalidatePath(`/admin/programs/${programId}/edit`);
   return {};
 }
@@ -161,7 +169,11 @@ export async function deleteLesson(
 ): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("lessons").delete().eq("id", lessonId);
+  const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
+  if (error) {
+    console.error("deleteLesson: delete failed", error);
+    return { error: "Could not delete the lesson. Please try again." };
+  }
   revalidatePath(`/admin/programs/${programId}/edit`);
   return {};
 }

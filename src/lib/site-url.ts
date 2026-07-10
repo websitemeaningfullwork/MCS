@@ -35,3 +35,21 @@ export function absoluteUrl(path = ""): string {
   if (!path) return SITE_URL;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * Sanitize a user-supplied `?next=` redirect target to a safe same-site path.
+ *
+ * A naive `startsWith("/")` check is NOT enough: `//evil.com` and `/\evil.com`
+ * both start with `/` yet resolve to an EXTERNAL origin (protocol-relative /
+ * backslash tricks), enabling an open-redirect after login/OAuth. We only allow
+ * a single leading slash NOT followed by another slash or backslash, and reject
+ * anything that isn't a plain local path. Falls back to the given default.
+ */
+export function safeNextPath(next: string | null | undefined, fallback = "/dashboard"): string {
+  if (!next) return fallback;
+  // Must start with exactly one "/", and the next char must not be "/" or "\".
+  if (!/^\/(?![/\\])/.test(next)) return fallback;
+  // Defensively reject control chars and backslashes anywhere in the path.
+  if (/[\\\x00-\x1f]/.test(next)) return fallback;
+  return next;
+}

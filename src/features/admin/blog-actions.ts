@@ -81,7 +81,11 @@ export async function saveBlogPost(input: BlogInput): Promise<{ error?: string }
 export async function deleteBlogPost(id: string): Promise<{ error?: string }> {
   const ctx = await assertAdmin();
   if (!ctx) return { error: "Not authorized." };
-  await ctx.supabase.from("blog_posts").delete().eq("id", id);
+  const { error } = await ctx.supabase.from("blog_posts").delete().eq("id", id);
+  if (error) {
+    console.error("deleteBlogPost: delete failed", error);
+    return { error: "Could not delete the post. Please try again." };
+  }
   revalidatePath("/admin/blog");
   revalidatePath("/blog");
   return {};

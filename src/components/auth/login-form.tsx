@@ -14,6 +14,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { GoogleButton } from "@/components/auth/google-button";
 import { signInWithEmail } from "@/features/auth/actions";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
+import { safeNextPath } from "@/lib/site-url";
 
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
@@ -33,7 +34,7 @@ export function LoginForm({ next }: { next?: string }) {
       return;
     }
     toast.success("Welcome back!");
-    router.push(next && next.startsWith("/") ? next : "/dashboard");
+    router.push(safeNextPath(next));
     router.refresh();
   }
 

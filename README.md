@@ -61,15 +61,17 @@ Build plan and specification live in [`/docs`](./docs):
 ## Database
 
 `supabase/migrations/` is the **single source of truth** for the database. Apply
-every migration in filename order (`000` → `006`) — either with the Supabase CLI:
+every migration in filename order (`000` → `008`) — either with the Supabase CLI:
 
 ```bash
 supabase db push
 ```
 
 …or by pasting each file into the Supabase SQL editor in order. `000_base_schema.sql`
-creates all tables, RLS, and helpers; later migrations patch on top and are all
-idempotent (safe to re-run).
+creates all tables, RLS, and helpers; later migrations (`001`–`008`) patch on top.
+All are idempotent (safe to re-run) — `000` bakes in the hardened `006`/`007` policy
+set, so re-applying it no longer re-opens closed security holes. Always apply the
+full set; don't stop at `000`.
 
 Then optionally load demo data with `supabase/seed.sql`.
 
