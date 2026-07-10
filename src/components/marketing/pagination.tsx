@@ -55,9 +55,3 @@ export function Pagination({ page, totalPages }: { page: number; totalPages: num
     </nav>
   );
 }
-
-/** Clamp a raw `?page=` value to a positive integer. */
-export function parsePage(raw: string | undefined): number {
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
-}

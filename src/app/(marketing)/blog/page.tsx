@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/marketing/empty-state";
-import { Pagination, parsePage } from "@/components/marketing/pagination";
+import { Pagination } from "@/components/marketing/pagination";
+import { parsePage } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 12;

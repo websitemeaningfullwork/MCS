@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ResourceCard, RESOURCE_KIND_LABELS } from "@/components/marketing/resource-card";
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
-import { Pagination, parsePage } from "@/components/marketing/pagination";
+import { Pagination } from "@/components/marketing/pagination";
+import { parsePage } from "@/lib/pagination";
 import type { Enums } from "@/types/database.types";
 
 const PAGE_SIZE = 24;
