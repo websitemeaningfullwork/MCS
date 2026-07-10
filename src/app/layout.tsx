@@ -8,7 +8,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { createClient } from "@/lib/supabase/server";
+import { SITE_URL as siteUrl } from "@/lib/site-url";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,8 +22,6 @@ const hindSiliguri = Hind_Siliguri({
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -43,26 +41,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let role: string | null = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-    role = profile?.role ?? null;
-  }
-
   return (
     <html
       lang="en"
@@ -84,7 +67,7 @@ export default async function RootLayout({
               >
                 Skip to content
               </a>
-              <Navbar authed={Boolean(user)} role={role} />
+              <Navbar />
               <main id="main" className="flex-1 pt-24">
                 {children}
               </main>

@@ -35,19 +35,29 @@ export default async function CommunityPage() {
           Learning is better together. Connect with fellow students, ask
           questions, share your wins, and stay motivated.
         </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="rounded-full">
-            <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
-              <MessagesSquare className="size-4" />
-              Facebook Group
-            </a>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="rounded-full">
-            <a href={COMMUNITY.whatsapp} target="_blank" rel="noopener noreferrer">
-              WhatsApp Group
-            </a>
-          </Button>
-        </div>
+        {COMMUNITY.facebook || COMMUNITY.whatsapp ? (
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            {COMMUNITY.facebook ? (
+              <Button asChild size="lg" className="rounded-full">
+                <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
+                  <MessagesSquare className="size-4" />
+                  Facebook Group
+                </a>
+              </Button>
+            ) : null}
+            {COMMUNITY.whatsapp ? (
+              <Button asChild size="lg" variant="outline" className="rounded-full">
+                <a href={COMMUNITY.whatsapp} target="_blank" rel="noopener noreferrer">
+                  WhatsApp Group
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-8 text-sm text-muted-foreground">
+            Community links are coming soon — check back shortly.
+          </p>
+        )}
       </div>
 
       {announcements && announcements.length > 0 ? (

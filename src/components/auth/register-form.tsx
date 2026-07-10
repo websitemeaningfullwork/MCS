@@ -73,10 +73,12 @@ export function RegisterForm() {
             id="full_name"
             autoComplete="name"
             placeholder="Your name"
+            aria-invalid={errors.full_name ? true : undefined}
+            aria-describedby={errors.full_name ? "full_name-error" : undefined}
             {...register("full_name")}
           />
           {errors.full_name ? (
-            <p className="text-sm text-destructive">
+            <p id="full_name-error" role="alert" className="text-sm text-destructive">
               {errors.full_name.message}
             </p>
           ) : null}
@@ -89,10 +91,14 @@ export function RegisterForm() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            aria-invalid={errors.email ? true : undefined}
+            aria-describedby={errors.email ? "email-error" : undefined}
             {...register("email")}
           />
           {errors.email ? (
-            <p className="text-sm text-destructive">{errors.email.message}</p>
+            <p id="email-error" role="alert" className="text-sm text-destructive">
+              {errors.email.message}
+            </p>
           ) : null}
         </div>
 
@@ -102,10 +108,14 @@ export function RegisterForm() {
             id="password"
             autoComplete="new-password"
             placeholder="At least 8 characters"
+            aria-invalid={errors.password ? true : undefined}
+            aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password")}
           />
           {errors.password ? (
-            <p className="text-sm text-destructive">{errors.password.message}</p>
+            <p id="password-error" role="alert" className="text-sm text-destructive">
+              {errors.password.message}
+            </p>
           ) : null}
         </div>
 

@@ -60,5 +60,18 @@ Build plan and specification live in [`/docs`](./docs):
 
 ## Database
 
-SQL for Supabase lives in [`/supabase`](./supabase): `schema.sql`, `policies.sql`, `seed.sql`.
-Run them in the Supabase SQL editor in that order (schema → policies → seed).
+`supabase/migrations/` is the **single source of truth** for the database. Apply
+every migration in filename order (`000` → `006`) — either with the Supabase CLI:
+
+```bash
+supabase db push
+```
+
+…or by pasting each file into the Supabase SQL editor in order. `000_base_schema.sql`
+creates all tables, RLS, and helpers; later migrations patch on top and are all
+idempotent (safe to re-run).
+
+Then optionally load demo data with `supabase/seed.sql`.
+
+> `supabase/schema.sql` and `supabase/policies.sql` are the original standalone
+> files, kept for reference only — they are fully reproduced by `000_base_schema.sql`.

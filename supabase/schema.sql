@@ -1,6 +1,9 @@
 -- ============================================================
 -- MCA MVP — schema (extensions, enums, tables, trigger, helpers)
--- Run this FIRST, then policies.sql, then seed.sql.
+--
+-- DEPRECATED as a setup entry point. The single source of truth is now
+-- supabase/migrations/000_base_schema.sql (which reproduces this file plus
+-- policies.sql, idempotently). Kept here for reference only.
 -- ============================================================
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";

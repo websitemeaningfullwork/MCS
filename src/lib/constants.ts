@@ -8,10 +8,13 @@ export const SITE = {
   email: "hello@mca.academy",
 };
 
-/** Community links — replace with the real Facebook / WhatsApp group URLs. */
+/**
+ * Community links. Set these in the environment for production; when a link is
+ * blank the corresponding button is hidden so we never ship a dead placeholder.
+ */
 export const COMMUNITY = {
-  facebook: "https://facebook.com/groups/your-mca-group",
-  whatsapp: "https://chat.whatsapp.com/your-invite-code",
+  facebook: process.env.NEXT_PUBLIC_COMMUNITY_FACEBOOK_URL ?? "",
+  whatsapp: process.env.NEXT_PUBLIC_COMMUNITY_WHATSAPP_URL ?? "",
 };
 
 /** Program categories shown in the navbar Programs dropdown. */

@@ -38,20 +38,21 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { signOut } from "@/features/auth/actions";
+import { createClient } from "@/lib/supabase/browser";
 import { NAV_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export function Navbar({
-  authed,
-  role,
-}: {
-  authed: boolean;
-  role?: string | null;
-}) {
+export function Navbar() {
   const dict = useDict();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+
+  // Auth state is fetched client-side (a small dynamic "island") so the root
+  // layout — and therefore public marketing pages — stay static/cacheable
+  // instead of being forced dynamic by a server-side session read.
+  const [authed, setAuthed] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
   const homeForRole =
     role === "admin" ? "/admin" : role === "mentor" ? "/mentor" : "/dashboard";
@@ -61,6 +62,38 @@ export function Navbar({
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    async function loadAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!active) return;
+      setAuthed(Boolean(user));
+      if (!user) {
+        setRole(null);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (active) setRole(profile?.role ?? null);
+    }
+
+    loadAuth();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => loadAuth());
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const isActive = (href: string) =>

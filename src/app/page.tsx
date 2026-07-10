@@ -398,18 +398,24 @@ export default async function HomePage() {
                   motivated together.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild className="rounded-full">
-                  <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
-                    Facebook Group
-                  </a>
-                </Button>
-                <Button asChild variant="outline" className="rounded-full">
-                  <a href={COMMUNITY.whatsapp} target="_blank" rel="noopener noreferrer">
-                    WhatsApp Group
-                  </a>
-                </Button>
-              </div>
+              {COMMUNITY.facebook || COMMUNITY.whatsapp ? (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {COMMUNITY.facebook ? (
+                    <Button asChild className="rounded-full">
+                      <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
+                        Facebook Group
+                      </a>
+                    </Button>
+                  ) : null}
+                  {COMMUNITY.whatsapp ? (
+                    <Button asChild variant="outline" className="rounded-full">
+                      <a href={COMMUNITY.whatsapp} target="_blank" rel="noopener noreferrer">
+                        WhatsApp Group
+                      </a>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </Reveal>

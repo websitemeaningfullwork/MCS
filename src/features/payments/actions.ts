@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { effectivePriceBDT } from "@/lib/format";
+import { rateLimitByIp } from "@/lib/rate-limit";
 import { manualPaymentSchema, type ManualPaymentInput } from "./schemas";
 
 type ItemInfo = { title: string; price: number } | null;
@@ -45,6 +46,11 @@ export async function submitManualPayment(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in to continue." };
 
+  // Limit repeated submissions from one user (payment-review noise / spam).
+  if (!(await rateLimitByIp(`payment:${user.id}`, 5, 60_000))) {
+    return { error: "Too many submissions. Please wait a minute and try again." };
+  }
+
   const item = await loadItem(supabase, type, id);
   if (!item) return { error: "This item is not available." };
   if (item.price <= 0) return { error: "This item is free — no payment needed." };
@@ -62,6 +68,19 @@ export async function submitManualPayment(
   // Orders/items/submissions are created server-side with the service role so
   // clients cannot craft order rows or prices (RLS blocks student inserts).
   const admin = createAdminClient();
+
+  // Confirm the referenced screenshot actually exists in the caller's folder
+  // before trusting it. If it doesn't, drop it silently — it's optional, so a
+  // stale/forged path must never block checkout nor be shown to an admin.
+  if (safeScreenshotPath) {
+    const slash = safeScreenshotPath.lastIndexOf("/");
+    const folder = safeScreenshotPath.slice(0, slash);
+    const name = safeScreenshotPath.slice(slash + 1);
+    const { data: listed } = await admin.storage
+      .from("payment-screenshots")
+      .list(folder, { search: name, limit: 1 });
+    if (!listed?.some((o) => o.name === name)) safeScreenshotPath = null;
+  }
 
   const { data: order, error: orderErr } = await admin
     .from("orders")

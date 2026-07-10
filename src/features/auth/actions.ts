@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { absoluteUrl } from "@/lib/site-url";
+import { rateLimitByIp } from "@/lib/rate-limit";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -13,16 +15,17 @@ import {
 
 type ActionError = { error: string };
 
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-}
-
 export async function signInWithEmail(
   input: LoginInput,
 ): Promise<ActionError | { success: true }> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return { error: "Please check your email and password." };
+  }
+
+  // Slow down credential-stuffing / brute force: 10 attempts per minute per IP.
+  if (!(await rateLimitByIp("login", 10, 60_000))) {
+    return { error: "Too many attempts. Please wait a minute and try again." };
   }
 
   const supabase = await createClient();
@@ -47,6 +50,11 @@ export async function signUpWithEmail(
     return { error: "Please check the form and try again." };
   }
 
+  // Limit automated sign-up abuse: 5 accounts per minute per IP.
+  if (!(await rateLimitByIp("signup", 5, 60_000))) {
+    return { error: "Too many attempts. Please wait a minute and try again." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -54,7 +62,7 @@ export async function signUpWithEmail(
     options: {
       // role always defaults to 'student' via the DB trigger; never trusted from the client.
       data: { full_name: parsed.data.full_name },
-      emailRedirectTo: `${siteUrl()}/auth/callback`,
+      emailRedirectTo: absoluteUrl("/auth/callback"),
     },
   });
 
@@ -69,7 +77,7 @@ export async function signInWithGoogle(): Promise<ActionError | { url: string }>
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${siteUrl()}/auth/callback` },
+    options: { redirectTo: absoluteUrl("/auth/callback") },
   });
 
   if (error) return { error: error.message };
@@ -85,10 +93,15 @@ export async function requestPasswordReset(
     return { error: "Enter a valid email address." };
   }
 
+  // Throttle reset-email requests: 5 per minute per IP.
+  if (!(await rateLimitByIp("password-reset", 5, 60_000))) {
+    return { error: "Too many requests. Please wait a minute and try again." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
-    { redirectTo: `${siteUrl()}/auth/callback?next=/reset-password` },
+    { redirectTo: absoluteUrl("/auth/callback?next=/reset-password") },
   );
 
   // Always report success to avoid revealing whether an account exists.
