@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -103,7 +104,6 @@ export function Navbar() {
     { href: "/mentors", label: dict.nav.mentors },
     { href: "/resources", label: dict.nav.ebooks },
     { href: "/live-classes", label: dict.nav.liveClasses },
-    { href: "/blog", label: dict.nav.blog },
   ];
 
   const allLinks = [
@@ -140,6 +140,14 @@ export function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden items-center gap-0.5 lg:flex">
+          <Link
+            href="/"
+            aria-current={isActive("/") ? "page" : undefined}
+            className={linkClass(isActive("/"))}
+          >
+            {dict.nav.home}
+          </Link>
+
           {/* Programs dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -206,6 +214,19 @@ export function Navbar() {
           </div>
 
           <ThemeToggle />
+
+          {/* Notifications */}
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="hidden rounded-full sm:inline-flex"
+          >
+            <Link href={authed ? "/dashboard" : "/login"}>
+              <Bell className="size-5" />
+            </Link>
+          </Button>
 
           {/* Auth-aware profile / login */}
           {authed ? (

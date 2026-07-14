@@ -8,7 +8,8 @@
 /* ============================================================
    MCA design tokens — mapped onto shadcn's variable system so
    every shadcn/ui component inherits the brand automatically.
-   Brand: Deep Navy + Emerald, cream-white light theme.
+   Brand: Premium Blue, cream-white light theme. Green is reserved
+   for success / progress / completed states only.
    ============================================================ */
 @theme inline {
   --color-background: var(--background);
@@ -72,7 +73,7 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  --primary: #0f766e; /* Emerald — the primary action color */
+  --primary: #2563eb; /* Premium Blue — the primary action color */
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -84,30 +85,30 @@
 
   --border: #e5e7eb;
   --input: #e5e7eb;
-  --ring: #0f766e;
+  --ring: #2563eb;
 
   /* Brand extras */
-  --brand: #0f766e;
-  --brand-hover: #14b8a6;
+  --brand: #2563eb; /* Premium Blue */
+  --brand-hover: #3b82f6; /* Sky/Royal blue for gradients */
   --brand-foreground: #ffffff;
   --navy: #0f172a;
-  --success: #22c55e;
+  --success: #22c55e; /* Green — progress / success / completed only */
   --warning: #f59e0b;
 
   --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.06);
 
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
-  --sidebar-primary: #0f766e;
+  --sidebar-primary: #2563eb;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: #0f172a;
   --sidebar-border: #e5e7eb;
-  --sidebar-ring: #0f766e;
+  --sidebar-ring: #2563eb;
 }
 
 .dark {
-  /* Dark theme — Deep Navy / Near Black, emerald glow */
+  /* Dark theme — Deep Navy / Near Black, premium-blue glow */
   --background: #0b1220;
   --foreground: #f8fafc;
   --card: #111827;
@@ -115,8 +116,8 @@
   --popover: #111827;
   --popover-foreground: #f8fafc;
 
-  --primary: #14b8a6;
-  --primary-foreground: #04231f;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
   --secondary: #1f2937;
   --secondary-foreground: #f8fafc;
   --muted: #1f2937;
@@ -127,11 +128,11 @@
 
   --border: #1f2937;
   --input: #263244;
-  --ring: #14b8a6;
+  --ring: #3b82f6;
 
-  --brand: #14b8a6;
-  --brand-hover: #2dd4bf;
-  --brand-foreground: #04231f;
+  --brand: #3b82f6;
+  --brand-hover: #60a5fa;
+  --brand-foreground: #ffffff;
   --navy: #0f172a;
   --success: #22c55e;
   --warning: #fbbf24;
@@ -140,12 +141,12 @@
 
   --sidebar: #111827;
   --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #04231f;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1f2937;
   --sidebar-accent-foreground: #f8fafc;
   --sidebar-border: #1f2937;
-  --sidebar-ring: #14b8a6;
+  --sidebar-ring: #3b82f6;
 }
 
 @layer base {
@@ -203,5 +204,36 @@
   }
   .shadow-card {
     box-shadow: var(--shadow-card);
+  }
+  /* Premium blue gradient text — used for hero accent line. */
+  .text-gradient-blue {
+    background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 45%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Soft airy hero backdrop with premium blue wash. */
+  .hero-surface {
+    background:
+      radial-gradient(60% 80% at 78% 25%, rgba(56, 189, 248, 0.16), transparent 60%),
+      radial-gradient(50% 60% at 12% 15%, rgba(37, 99, 235, 0.1), transparent 55%),
+      linear-gradient(180deg, #f4f8ff 0%, #fafbff 55%, var(--background) 100%);
+  }
+  .dark .hero-surface {
+    background:
+      radial-gradient(60% 80% at 78% 25%, rgba(56, 189, 248, 0.14), transparent 60%),
+      radial-gradient(50% 60% at 12% 15%, rgba(37, 99, 235, 0.14), transparent 55%),
+      linear-gradient(180deg, #0d1830 0%, #0b1424 55%, var(--background) 100%);
+  }
+  /* Premium card hover — soft lift + shadow. */
+  .card-hover {
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.18);
   }
 }

@@ -2,39 +2,132 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarDays,
+  BookOpen,
+  GraduationCap,
   MessageCircleQuestion,
+  Mic,
+  MessageSquareText,
+  ListChecks,
+  Play,
   Sparkles,
-  Star,
+  TrendingUp,
+  Users,
+  Video,
 } from "lucide-react";
 
 import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { ProgramCard } from "@/components/marketing/program-card";
 import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-card";
-import { CategoryIcon, getIcon } from "@/components/marketing/category-icon";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { Reveal } from "@/components/marketing/reveal";
-import { WHY_MCA, TESTIMONIALS, COMMUNITY } from "@/lib/constants";
-import { formatBDT } from "@/lib/format";
+import { ContinueJourney } from "@/components/marketing/continue-journey";
+import { COMMUNITY } from "@/lib/constants";
 
-// The homepage shows only public, anon-readable content, so it is statically
-// prerendered and revalidated every 5 minutes (served from the CDN) instead of
-// re-querying the database on every request. Auth-aware UI lives in the client
-// navbar island, so nothing here depends on the signed-in user.
+// The public homepage renders only anon-readable content, so it is statically
+// prerendered and revalidated every 5 minutes (served from the CDN). Auth-aware
+// UI ("Continue Your Journey" + navbar) lives in client islands, so nothing on
+// the server path depends on the signed-in user.
 export const revalidate = 300;
+
+// --- Static homepage content -------------------------------------------------
+
+const FEATURES = [
+  {
+    title: "Courses",
+    description: "Expert-designed courses to power your future.",
+    href: "/programs",
+    icon: GraduationCap,
+    tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    title: "Expert Mentors",
+    description: "Learn from experienced professionals.",
+    href: "/mentors",
+    icon: Users,
+    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+  {
+    title: "E-Books",
+    description: "Read. Learn. Grow anytime, anywhere.",
+    href: "/resources",
+    icon: BookOpen,
+    tint: "bg-amber-400/15 text-amber-500 dark:text-amber-400",
+  },
+  {
+    title: "Live Classes",
+    description: "Join interactive live sessions.",
+    href: "/live-classes",
+    icon: Video,
+    tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    title: "Ask a Mentor",
+    description: "Get your answers from our experts.",
+    href: "/dashboard/questions/new",
+    icon: MessageCircleQuestion,
+    tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  },
+] as const;
+
+const ASK_OPTIONS = [
+  {
+    title: "Ask with Text",
+    description: "Type your question and get a thoughtful written answer.",
+    href: "/dashboard/questions/new",
+    icon: MessageSquareText,
+    tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    ring: "hover:border-blue-500/40",
+  },
+  {
+    title: "Ask with Voice",
+    description: "Record your question and let a mentor guide you back.",
+    href: "/dashboard/questions/new",
+    icon: Mic,
+    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    ring: "hover:border-violet-500/40",
+  },
+  {
+    title: "My Questions",
+    description: "Track your questions and revisit mentor answers.",
+    href: "/dashboard/questions",
+    icon: ListChecks,
+    tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    ring: "hover:border-orange-500/40",
+  },
+] as const;
+
+const STATS = [
+  {
+    label: "Happy Students",
+    value: "5,000+",
+    icon: Users,
+    tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    label: "E-Books",
+    value: "120+",
+    icon: BookOpen,
+    tint: "bg-amber-400/15 text-amber-500 dark:text-amber-400",
+  },
+  {
+    label: "Success Rate",
+    value: "94%",
+    icon: TrendingUp,
+    tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    label: "Questions Answered",
+    value: "25,000+",
+    icon: MessageCircleQuestion,
+    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+] as const;
 
 export default async function HomePage() {
   const supabase = createPublicClient();
 
-  const [
-    categoriesRes,
-    programsRes,
-    mentorRowsRes,
-    liveRes,
-    ebooksRes,
-  ] = await Promise.all([
-    supabase.from("categories").select("*").order("sort_order"),
+  const [programsRes, mentorRowsRes] = await Promise.all([
     supabase
       .from("programs")
       .select("*")
@@ -45,22 +138,11 @@ export default async function HomePage() {
       .from("mentors")
       .select("id, headline, expertise, rating, reviews_count, is_verified")
       .eq("is_featured", true)
-      .limit(6),
-    supabase
-      .from("live_classes")
-      .select("*")
-      .eq("is_public", true)
-      .gte("starts_at", new Date().toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(3),
-    supabase.from("public_resources").select("*").eq("kind", "ebook").limit(4),
+      .limit(4),
   ]);
 
-  const categories = categoriesRes.data ?? [];
   const programs = programsRes.data ?? [];
   const mentorRows = mentorRowsRes.data ?? [];
-  const liveClasses = liveRes.data ?? [];
-  const ebooks = ebooksRes.data ?? [];
 
   // Resolve mentor display names/photos (public read of mentor profiles).
   const mentorIds = new Set<string>();
@@ -73,8 +155,7 @@ export default async function HomePage() {
         .select("id, full_name, avatar_url")
         .in("id", [...mentorIds])
     : { data: [] };
-  const profiles = profilesRes.data ?? [];
-  const profileById = new Map(profiles.map((p) => [p.id, p]));
+  const profileById = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
 
   const mentors: MentorCardData[] = mentorRows.map((m) => ({
     id: m.id,
@@ -87,371 +168,297 @@ export default async function HomePage() {
     avatar_url: profileById.get(m.id)?.avatar_url ?? null,
   }));
 
-  // Static link for everyone: the proxy redirects logged-out visitors to
-  // /login?next=… and returns them here after auth.
-  const askHref = "/dashboard/questions/new";
-
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      {/* 1. Hero */}
-      <section className="grid grid-cols-1 items-center gap-10 py-16 sm:py-24 lg:grid-cols-2">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground shadow-card">
-            <Sparkles className="size-4 text-primary" />
-            Mentorship-first learning for Bangladesh
-          </span>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Find the Right Mentor.
-            <br />
-            <span className="text-primary">Build a Meaningful Career.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Learn directly from experienced mentors through structured
-            mentorship programs, premium courses, live sessions, e-books, and
-            practical career guidance.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="rounded-full">
-              <Link href="/mentors">
-                Find Your Mentor
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full">
-              <Link href="/programs">Explore Programs</Link>
-            </Button>
-          </div>
-        </div>
+    <>
+      {/* ===================================================================
+          1. HERO — full-bleed, floating navbar overlaps this section.
+          =================================================================== */}
+      <section className="hero-surface relative -mt-24 w-full overflow-hidden">
+        {/* Decorative soft glows */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 top-10 size-72 rounded-full bg-blue-400/20 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-1/3 top-1/2 size-72 rounded-full bg-sky-300/20 blur-3xl"
+        />
 
-        {/* Hero visual */}
-        <div className="relative hidden lg:block">
-          <div className="relative aspect-square overflow-hidden rounded-3xl shadow-card">
-            <Image
-              src="/images/hero-mentor-student.webp"
-              alt="A mentor guiding a student through a lesson on a laptop"
-              fill
-              priority
-              sizes="(min-width: 1024px) 40vw, 0px"
-              className="object-cover"
-            />
-          </div>
-          <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-border bg-card/90 p-4 shadow-card backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Star className="size-5 fill-warning text-warning" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Guided by expert mentors
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Personal guidance, not just courses.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Meet our mentors */}
-      {mentors.length > 0 ? (
-        <section className="py-14">
-          <Reveal>
-            <SectionHeading
-              eyebrow="The heart of MCA"
-              title="Meet our mentors"
-              description="Experienced professionals ready to guide you personally."
-              href="/mentors"
-            />
-          </Reveal>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {mentors.map((mentor, i) => (
-              <Reveal key={mentor.id} delay={i * 0.05}>
-                <MentorCard mentor={mentor} />
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 3. Learning programs (categories) */}
-      <section className="py-14">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Explore"
-            title="Learning programs for every goal"
-            description="From admission prep to programming and career skills."
-            href="/programs"
+        {/* Full-bleed student image on the right (desktop) */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] lg:block">
+          <Image
+            src="/images/hero-mentor-student.webp"
+            alt="A student learning on a laptop with mentor guidance"
+            fill
+            priority
+            sizes="48vw"
+            className="object-cover object-center"
           />
-        </Reveal>
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {categories.map((category, i) => (
-            <Reveal key={category.id} delay={i * 0.03}>
-              <Link
-                href={`/programs?category=${category.slug}`}
-                className="flex h-full flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
+          {/* Left fade so the photo melts into the hero surface */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4">
+          <div className="max-w-xl pt-32 pb-24 lg:pt-40 lg:pb-40">
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-card/70 px-3 py-1 text-sm text-muted-foreground shadow-card backdrop-blur">
+              <Sparkles className="size-4 text-blue-600" />
+              Premium mentorship for Bangladesh
+            </span>
+
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+              Learn Today,
+              <br />
+              <span className="text-gradient-blue">Lead Tomorrow.</span>
+            </h1>
+
+            <p className="mt-6 max-w-md text-lg text-muted-foreground">
+              Your trusted learning companion to grow, achieve, and make your
+              dreams a reality.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg shadow-blue-600/25 transition-shadow hover:shadow-xl hover:shadow-blue-600/40"
               >
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <CategoryIcon name={category.icon} className="size-5" />
-                </span>
-                <span className="font-medium text-foreground">
-                  {category.name}
-                </span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* 4. Why MCA */}
-      <section className="py-14">
-        <Reveal>
-          <SectionHeading
-            align="center"
-            eyebrow="Why learn with MCA"
-            title="More than courses — real guidance"
-          />
-        </Reveal>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {WHY_MCA.map((pillar, i) => {
-            const Icon = getIcon(pillar.icon);
-            return (
-              <Reveal key={pillar.title} delay={i * 0.05}>
-                <div className="h-full rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="size-5" />
-                  </span>
-                  <h3 className="mt-4 font-semibold text-foreground">
-                    {pillar.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {pillar.description}
-                  </p>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 5. Featured programs */}
-      {programs.length > 0 ? (
-        <section className="py-14">
-          <Reveal>
-            <SectionHeading
-              eyebrow="Featured"
-              title="Popular programs right now"
-              href="/programs"
-            />
-          </Reveal>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {programs.map((program, i) => (
-              <Reveal key={program.id} delay={i * 0.05}>
-                <ProgramCard
-                  program={program}
-                  mentorName={
-                    program.mentor_id
-                      ? profileById.get(program.mentor_id)?.full_name
-                      : null
-                  }
-                />
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 6. Success stories */}
-      <section className="py-14">
-        <Reveal>
-          <SectionHeading
-            align="center"
-            eyebrow="Student stories"
-            title="Careers built with guidance"
-          />
-        </Reveal>
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {TESTIMONIALS.map((t, i) => (
-            <Reveal key={t.name} delay={i * 0.05}>
-              <figure className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 shadow-card">
-                <div className="flex gap-0.5 text-warning">
-                  {Array.from({ length: 5 }).map((_, s) => (
-                    <Star key={s} className="size-4 fill-warning" />
-                  ))}
-                </div>
-                <blockquote className="mt-4 flex-1 text-foreground">
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className="mt-4 text-sm">
-                  <span className="font-semibold text-foreground">{t.name}</span>
-                  <span className="block text-muted-foreground">{t.role}</span>
-                </figcaption>
-              </figure>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. Ask a mentor CTA */}
-      <section className="py-14">
-        <Reveal>
-          <div className="grid items-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-brand-hover/10 shadow-card md:grid-cols-2">
-            <div className="p-8 sm:p-12">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <MessageCircleQuestion className="size-6" />
-              </span>
-              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Stuck on something? Ask a mentor.
-              </h2>
-              <p className="mt-3 max-w-xl text-muted-foreground">
-                Get personal, thoughtful answers to your learning and career
-                questions — usually within 24–48 hours.
-              </p>
-              <Button asChild size="lg" className="mt-6 rounded-full">
-                <Link href={askHref}>
-                  Ask a Question
+                <Link href="/mentors">
+                  Find Your Mentor
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-full bg-card/70 backdrop-blur"
+              >
+                <Link href="/live-classes">
+                  <Play className="size-4 fill-current" />
+                  Watch Overview
+                </Link>
+              </Button>
             </div>
-            <div className="relative min-h-64 md:min-h-full md:self-stretch">
-              <Image
-                src="/images/mentor-guidance.webp"
-                alt="A mentor giving one-on-one career guidance with a roadmap"
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-              />
+          </div>
+
+          {/* Mobile hero image */}
+          <div className="relative -mt-8 mb-4 aspect-[4/3] overflow-hidden rounded-3xl shadow-card lg:hidden">
+            <Image
+              src="/images/hero-mentor-student.webp"
+              alt="A student learning on a laptop with mentor guidance"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================
+          2. FEATURE CARDS — colorful, overlapping the hero.
+          =================================================================== */}
+      <div className="relative z-10 mx-auto -mt-16 max-w-6xl px-4">
+        <Reveal>
+          <div className="rounded-3xl border border-border bg-card p-4 shadow-card sm:p-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+              {FEATURES.map((feature) => (
+                <Link
+                  key={feature.title}
+                  href={feature.href}
+                  className="group flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-secondary/60"
+                >
+                  <span
+                    className={`flex size-14 items-center justify-center rounded-2xl ${feature.tint} transition-transform duration-300 group-hover:scale-110`}
+                  >
+                    <feature.icon className="size-7" />
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {feature.title}
+                  </span>
+                  <span className="text-sm leading-snug text-muted-foreground">
+                    {feature.description}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </Reveal>
-      </section>
+      </div>
 
-      {/* 8. Live classes */}
-      {liveClasses.length > 0 ? (
-        <section className="py-14">
+      {/* Constrained content column for the rest of the page. */}
+      <div className="mx-auto max-w-6xl px-4">
+        {/* =================================================================
+            5. POPULAR PROGRAMS
+            ================================================================= */}
+        {programs.length > 0 ? (
+          <section className="pt-20">
+            <Reveal>
+              <SectionHeading
+                eyebrow="Featured"
+                title="Popular Programs"
+                description="Hand-picked programs students love right now."
+                href="/programs"
+              />
+            </Reveal>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {programs.map((program, i) => (
+                <Reveal key={program.id} delay={i * 0.05}>
+                  <ProgramCard
+                    program={program}
+                    mentorName={
+                      program.mentor_id
+                        ? profileById.get(program.mentor_id)?.full_name
+                        : null
+                    }
+                  />
+                </Reveal>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {/* =================================================================
+            Meet our mentors
+            ================================================================= */}
+        {mentors.length > 0 ? (
+          <section className="pt-20">
+            <Reveal>
+              <SectionHeading
+                eyebrow="The heart of MCA"
+                title="Meet Our Mentors"
+                description="Experienced professionals ready to guide you personally."
+                href="/mentors"
+              />
+            </Reveal>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {mentors.map((mentor, i) => (
+                <Reveal key={mentor.id} delay={i * 0.05}>
+                  <MentorCard mentor={mentor} />
+                </Reveal>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {/* =================================================================
+            6. CONTINUE YOUR JOURNEY (auth-aware island)
+            ================================================================= */}
+        <section className="pt-20">
           <Reveal>
             <SectionHeading
-              eyebrow="Live"
-              title="Upcoming live classes"
-              href="/live-classes"
+              eyebrow="Keep going"
+              title="Continue Your Journey"
+              description="Pick up right where you left off."
             />
           </Reveal>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {liveClasses.map((lc, i) => (
-              <Reveal key={lc.id} delay={i * 0.05}>
-                <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="inline-flex items-center gap-2 text-sm text-primary">
-                    <CalendarDays className="size-4" />
-                    {new Date(lc.starts_at).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <h3 className="mt-3 font-semibold text-foreground">
-                    {lc.title}
-                  </h3>
-                  {lc.description ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {lc.description}
-                    </p>
-                  ) : null}
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="mt-auto w-fit rounded-full"
-                    size="sm"
-                  >
-                    <Link href="/live-classes">View details</Link>
-                  </Button>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <ContinueJourney />
         </section>
-      ) : null}
 
-      {/* 9. Premium e-books */}
-      {ebooks.length > 0 ? (
-        <section className="py-14">
+        {/* =================================================================
+            7. ASK A MENTOR
+            ================================================================= */}
+        <section className="pt-20">
           <Reveal>
             <SectionHeading
-              eyebrow="Read"
-              title="Premium e-books & resources"
-              href="/resources"
+              align="center"
+              eyebrow="Personal support"
+              title="Ask a Mentor"
+              description="Stuck on something? Reach a real mentor your way."
             />
           </Reveal>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {ebooks.map((book, i) => (
-              <Reveal key={book.id} delay={i * 0.05}>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {ASK_OPTIONS.map((opt, i) => (
+              <Reveal key={opt.title} delay={i * 0.05}>
                 <Link
-                  href={`/resources/${book.slug}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
+                  href={opt.href}
+                  className={`card-hover flex h-full flex-col items-start gap-4 rounded-3xl border border-border bg-card p-6 shadow-card ${opt.ring}`}
                 >
-                  <div className="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15">
-                    <span className="px-4 text-center text-sm font-medium text-primary/50">
-                      {book.title}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col p-4">
-                    <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
-                      {book.title}
+                  <span
+                    className={`flex size-12 items-center justify-center rounded-2xl ${opt.tint}`}
+                  >
+                    <opt.icon className="size-6" />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      {opt.title}
                     </h3>
-                    <span className="mt-auto pt-3 font-semibold text-foreground">
-                      {formatBDT(book.price_bdt)}
-                    </span>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {opt.description}
+                    </p>
                   </div>
+                  <span className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary">
+                    Get started
+                    <ArrowRight className="size-4" />
+                  </span>
                 </Link>
               </Reveal>
             ))}
           </div>
-        </section>
-      ) : null}
 
-      {/* 10. Community CTA */}
-      <section className="py-14">
-        <Reveal>
-          <div className="grid items-center overflow-hidden rounded-3xl border border-border bg-card shadow-card md:grid-cols-2">
-            <div className="relative min-h-64 md:min-h-full md:self-stretch">
-              <Image
-                src="/images/community-students.webp"
-                alt="A group of students collaborating and learning together"
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="p-8 sm:p-12">
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Join our learning community
-              </h2>
-              <p className="mt-2 max-w-xl text-muted-foreground">
-                Connect with fellow learners, share progress, and stay
-                motivated together.
-              </p>
-              {COMMUNITY.facebook || COMMUNITY.whatsapp ? (
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  {COMMUNITY.facebook ? (
-                    <Button asChild className="rounded-full">
-                      <a href={COMMUNITY.facebook} target="_blank" rel="noopener noreferrer">
-                        Facebook Group
-                      </a>
-                    </Button>
-                  ) : null}
-                  {COMMUNITY.whatsapp ? (
-                    <Button asChild variant="outline" className="rounded-full">
-                      <a href={COMMUNITY.whatsapp} target="_blank" rel="noopener noreferrer">
-                        WhatsApp Group
-                      </a>
-                    </Button>
-                  ) : null}
+          {COMMUNITY.whatsapp ? (
+            <Reveal>
+              <div className="mt-5 flex flex-col items-center justify-between gap-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6 sm:flex-row">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <MessageCircleQuestion className="size-6" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      Need a quick reply?
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Chat with our support team on WhatsApp.
+                    </p>
+                  </div>
                 </div>
-              ) : null}
+                <Button
+                  asChild
+                  className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  <a
+                    href={COMMUNITY.whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open WhatsApp
+                    <ArrowRight className="size-4" />
+                  </a>
+                </Button>
+              </div>
+            </Reveal>
+          ) : null}
+        </section>
+
+        {/* =================================================================
+            8. STATISTICS
+            ================================================================= */}
+        <section className="py-20">
+          <Reveal>
+            <div className="rounded-3xl border border-border bg-gradient-to-br from-blue-500/5 via-card to-sky-400/5 p-8 shadow-card sm:p-12">
+              <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+                {STATS.map((stat, i) => (
+                  <Reveal key={stat.label} delay={i * 0.05}>
+                    <div className="flex flex-col items-center text-center">
+                      <span
+                        className={`flex size-14 items-center justify-center rounded-2xl ${stat.tint}`}
+                      >
+                        <stat.icon className="size-7" />
+                      </span>
+                      <p className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                        {stat.value}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {stat.label}
+                      </p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
             </div>
-          </div>
-        </Reveal>
-      </section>
-    </div>
+          </Reveal>
+        </section>
+      </div>
+    </>
   );
 }
