@@ -136,7 +136,7 @@ export function Navbar() {
           scrolled && "shadow-card",
         )}
       >
-        <Logo />
+        <Logo priority />
 
         {/* Desktop links */}
         <div className="hidden items-center gap-0.5 lg:flex">
