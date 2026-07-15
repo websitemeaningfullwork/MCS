@@ -97,7 +97,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-24 border-t border-border bg-card">
+    <footer className="glass-footer mt-24">
       <div className="mx-auto max-w-6xl px-4 py-14">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
