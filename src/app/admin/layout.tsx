@@ -16,7 +16,7 @@ const items: NavItem[] = [
   { href: "/admin/questions", label: "Questions", icon: "questions" },
   { href: "/admin/live-classes", label: "Live Classes", icon: "live" },
   { href: "/admin/mock-tests", label: "Mock Tests", icon: "tests" },
-  { href: "/admin/settings", label: "Payment Settings", icon: "settings" },
+  { href: "/admin/settings", label: "Settings", icon: "settings" },
 ];
 
 export default async function AdminLayout({

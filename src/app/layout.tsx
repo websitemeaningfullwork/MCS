@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LanguageProvider } from "@/components/shared/language-provider";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
+import { WhatsAppFab } from "@/components/shared/whatsapp-fab";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE_URL as siteUrl } from "@/lib/site-url";
@@ -72,6 +73,7 @@ export default function RootLayout({
                 {children}
               </main>
               <Footer />
+              <WhatsAppFab />
               <Toaster richColors position="top-center" />
             </TooltipProvider>
           </LanguageProvider>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { formatBDT, effectivePriceBDT, hasDiscount, levelLabel } from "@/lib/format";
@@ -18,6 +18,7 @@ type ProgramCardData = Pick<
   | "level"
   | "rating"
   | "reviews_count"
+  | "enrolled_count"
   | "is_bestseller"
 >;
 
@@ -33,6 +34,7 @@ export function ProgramCard({
   const price = effectivePriceBDT(program.price_bdt, program.discount_bdt);
   const showDiscount = hasDiscount(program.price_bdt, program.discount_bdt);
   const rating = program.rating ?? 0;
+  const enrolled = program.enrolled_count ?? 0;
 
   return (
     <Link
@@ -81,6 +83,15 @@ export function ProgramCard({
                     ({program.reviews_count})
                   </span>
                 ) : null}
+              </span>
+            </>
+          ) : null}
+          {enrolled > 0 ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="inline-flex items-center gap-1">
+                <Users className="size-3.5" />
+                {enrolled.toLocaleString("en-US")}
               </span>
             </>
           ) : null}

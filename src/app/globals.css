@@ -237,3 +237,21 @@
     box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.18);
   }
 }
+
+/* Floating WhatsApp support button — gentle idle float (respects reduced motion).
+   Applied on the fixed anchor, which positions via bottom/right (not transform),
+   so the float and the inner button's hover-scale never fight over `transform`. */
+@keyframes wa-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wa-float {
+    animation: wa-float 3s ease-in-out infinite;
+  }
+}

@@ -9,7 +9,6 @@ import {
   MessageSquareText,
   ListChecks,
   Play,
-  Sparkles,
   TrendingUp,
   Users,
   Video,
@@ -200,12 +199,7 @@ export default async function HomePage() {
 
         <div className="relative mx-auto max-w-6xl px-4">
           <div className="max-w-xl pt-32 pb-24 lg:pt-40 lg:pb-40">
-            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-card/70 px-3 py-1 text-sm text-muted-foreground shadow-card backdrop-blur">
-              <Sparkles className="size-4 text-blue-600" />
-              Premium mentorship for Bangladesh
-            </span>
-
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
               Learn Today,
               <br />
               <span className="text-gradient-blue">Lead Tomorrow.</span>

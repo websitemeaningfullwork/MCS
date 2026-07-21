@@ -841,6 +841,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      site_settings: {
+        Row: {
+          id: string;
+          whatsapp_enabled: boolean;
+          whatsapp_connection: string;
+          whatsapp_number: string | null;
+          whatsapp_link: string | null;
+          whatsapp_message: string | null;
+          whatsapp_position: string;
+          whatsapp_size: string;
+          whatsapp_animation: boolean;
+          updated_at: string | null;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          whatsapp_enabled?: boolean;
+          whatsapp_connection?: string;
+          whatsapp_number?: string | null;
+          whatsapp_link?: string | null;
+          whatsapp_message?: string | null;
+          whatsapp_position?: string;
+          whatsapp_size?: string;
+          whatsapp_animation?: boolean;
+          updated_at?: string | null;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          whatsapp_enabled?: boolean;
+          whatsapp_connection?: string;
+          whatsapp_number?: string | null;
+          whatsapp_link?: string | null;
+          whatsapp_message?: string | null;
+          whatsapp_position?: string;
+          whatsapp_size?: string;
+          whatsapp_animation?: boolean;
+          updated_at?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       // Non-null base columns (id, slug, title, kind, price_bdt, question, ...)
