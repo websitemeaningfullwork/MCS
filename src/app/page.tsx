@@ -3,15 +3,20 @@ import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
+  Briefcase,
   GraduationCap,
   MessageCircleQuestion,
   Mic,
   MessageSquareText,
   ListChecks,
   Play,
+  Radio,
+  Route,
   TrendingUp,
+  UserRound,
   Users,
   Video,
+  type LucideIcon,
 } from "lucide-react";
 
 import { createPublicClient } from "@/lib/supabase/public";
@@ -21,7 +26,17 @@ import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-c
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { Reveal } from "@/components/marketing/reveal";
 import { ContinueJourney } from "@/components/marketing/continue-journey";
-import { COMMUNITY } from "@/lib/constants";
+import { TestimonialCarousel } from "@/components/marketing/testimonial-carousel";
+import { AchievementsGallery } from "@/components/marketing/achievements-gallery";
+import { COMMUNITY, WHY_MCA } from "@/lib/constants";
+
+// Icon registry for the "Why MCA" pillars (WHY_MCA stores string keys).
+const PILLAR_ICONS: Record<string, LucideIcon> = {
+  "user-round": UserRound,
+  radio: Radio,
+  route: Route,
+  briefcase: Briefcase,
+};
 
 // The public homepage renders only anon-readable content, so it is statically
 // prerendered and revalidated every 5 minutes (served from the CDN). Auth-aware
@@ -283,6 +298,43 @@ export default async function HomePage() {
       {/* Constrained content column for the rest of the page. */}
       <div className="mx-auto max-w-6xl px-4">
         {/* =================================================================
+            ABOUT MCA — mission + "Why MCA" pillars (gogee "About" section).
+            ================================================================= */}
+        <section className="pt-20">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Why MCA"
+              title="Guidance, not just courses."
+              description="MCA is a mentorship-first platform. Every course, live class, e-book, and mock test exists to support a real relationship with a mentor who guides you toward a meaningful career."
+              href="/about"
+              linkLabel="Learn more"
+            />
+          </Reveal>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {WHY_MCA.map((pillar, i) => {
+              const Icon = PILLAR_ICONS[pillar.icon] ?? UserRound;
+              return (
+                <Reveal key={pillar.title} delay={i * 0.05}>
+                  <div className="card-hover flex h-full flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <Icon className="size-6" />
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-foreground">
+                        {pillar.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {pillar.description}
+                      </p>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* =================================================================
             5. POPULAR PROGRAMS
             ================================================================= */}
         {programs.length > 0 ? (
@@ -334,6 +386,23 @@ export default async function HomePage() {
             </div>
           </section>
         ) : null}
+
+        {/* =================================================================
+            STUDENT SUCCESS STORIES — testimonial carousel (gogee "Reviews").
+            ================================================================= */}
+        <section className="pt-20">
+          <Reveal>
+            <SectionHeading
+              align="center"
+              eyebrow="Loved by learners"
+              title="Student Success Stories"
+              description="Real words from students who found direction with a mentor by their side."
+            />
+          </Reveal>
+          <Reveal className="mt-10">
+            <TestimonialCarousel />
+          </Reveal>
+        </section>
 
         {/* =================================================================
             6. CONTINUE YOUR JOURNEY (auth-aware island)
@@ -422,6 +491,24 @@ export default async function HomePage() {
               </div>
             </Reveal>
           ) : null}
+        </section>
+
+        {/* =================================================================
+            ACHIEVEMENTS / WINNERS — gallery carousel (gogee "Winners").
+            ================================================================= */}
+        <section className="pt-20">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Winners' circle"
+              title="Where Our Students Are Now"
+              description="A snapshot of recent wins from across the MCA community."
+              href="/programs"
+              linkLabel="Start your journey"
+            />
+          </Reveal>
+          <Reveal className="mt-10">
+            <AchievementsGallery />
+          </Reveal>
         </section>
 
         {/* =================================================================

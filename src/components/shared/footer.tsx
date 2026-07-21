@@ -5,6 +5,7 @@ import type { SVGProps } from "react";
 
 import { Logo } from "@/components/shared/logo";
 import { useDict } from "@/components/shared/language-provider";
+import { FOOTER_METRICS, SITE } from "@/lib/constants";
 
 /* Brand/social glyphs — lucide dropped brand icons, so we inline them. */
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
@@ -99,12 +100,30 @@ export function Footer() {
   return (
     <footer className="glass-footer mt-24">
       <div className="mx-auto max-w-6xl px-4 py-14">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+        {/* Social-proof metric strip. */}
+        <div className="grid grid-cols-2 gap-6 border-b border-border pb-10 sm:grid-cols-4">
+          {FOOTER_METRICS.map((m) => (
+            <div key={m.label}>
+              <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {m.value}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{m.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               {dict.footer.tagline}
             </p>
+            <a
+              href={`mailto:${SITE.email}`}
+              className="mt-3 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {SITE.email}
+            </a>
           </div>
 
           {columns.map((col) => (

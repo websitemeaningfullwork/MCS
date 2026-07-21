@@ -548,7 +548,7 @@ green used only for status across the whole app.
 | Chunk | Title | Status | Notes / last touched |
 |---|---|---|---|
 | 1 | Site Settings + WhatsApp FAB + badge removal | ◐ Code-complete — **needs migration 009 applied to Supabase** | Build passes; homepage still static; FAB degrades gracefully pre-migration. Files: migration 009, `lib/site-settings.ts`, `features/admin/site-settings-actions.ts`, `components/shared/whatsapp-fab.tsx`, `components/admin/whatsapp-settings-form.tsx`, tabbed `admin/settings/page.tsx`, root layout mount, badge removed in `page.tsx`, `wa-float` keyframe in globals.css, sidebar label → "Settings". |
-| 2 | Homepage gogee8 sections + footer + mega menu | ☐ Not started | |
+| 2 | Homepage gogee8 sections + footer + mega menu | ✅ Done (build + SSR-verified) | Added About MCA, Student Success Stories carousel, Achievements/Winners gallery; footer social-proof metric strip + email; Programs mega menu (2-panel). New files: `marketing/carousel.tsx`, `testimonial-carousel.tsx`, `achievements-gallery.tsx`; constants expanded (TESTIMONIALS×6, ACHIEVEMENTS, MEGA_HIGHLIGHTS, FOOTER_METRICS). Testimonials are placeholder → Chunk 5 wires real approved reviews. No DB changes. |
 | 3 | LMS data model + admin course editor | ☐ Not started | |
 | 4 | Student course player | ☐ Not started | |
 | 5 | Review system + moderation + social proof | ☐ Not started | |
@@ -566,8 +566,11 @@ applied** to Supabase — apply it to activate Chunk 1). Next new = 010.
 - 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
   floating WhatsApp button (global, cached via `unstable_cache` + tag revalidation),
   tabbed Admin → Settings (WhatsApp + Payment), hero badge removed. `npm run build`
-  clean; `/` still static ISR. **Pending:** apply migration 009, then flip the
-  toggle in Admin → Settings → WhatsApp and confirm the button on a public page.
+  clean; `/` still static ISR. Migration 009 applied by user.
+- 2026-07-22 — Chunk 2 done: homepage gogee8 sections (About MCA, Student Success
+  Stories carousel, Achievements/Winners gallery), footer social-proof strip + email,
+  Programs mega menu. Dependency-free scroll-snap `Carousel`. Build clean, `/` still
+  static ISR; SSR HTML confirmed all new sections render. Next: **Chunk 3 (LMS)**.
 
 ---
 

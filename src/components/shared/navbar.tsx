@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/sheet";
 import { signOut } from "@/features/auth/actions";
 import { createClient } from "@/lib/supabase/browser";
-import { NAV_CATEGORIES } from "@/lib/constants";
+import { NAV_CATEGORIES, MEGA_HIGHLIGHTS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -159,36 +159,83 @@ export function Navbar() {
               {dict.nav.programs}
               <ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[440px] p-3">
-              <div className="grid grid-cols-2 gap-1">
-                {NAV_CATEGORIES.map((cat) => (
-                  <DropdownMenuItem key={cat.slug} asChild>
+            <DropdownMenuContent
+              align="start"
+              className="w-[640px] overflow-hidden p-0"
+            >
+              <div className="grid grid-cols-[1fr_15rem]">
+                {/* Left panel — categories */}
+                <div className="p-4">
+                  <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Categories
+                  </p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {NAV_CATEGORIES.map((cat) => (
+                      <DropdownMenuItem key={cat.slug} asChild>
+                        <Link
+                          href={`/programs?category=${cat.slug}`}
+                          className="flex items-center gap-2.5"
+                        >
+                          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <CategoryIcon name={cat.icon} className="size-4" />
+                          </span>
+                          <span className="text-sm">{cat.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="flex items-center justify-between px-1">
                     <Link
-                      href={`/programs?category=${cat.slug}`}
-                      className="flex items-center gap-2.5"
+                      href="/programs"
+                      className="text-sm font-medium text-primary hover:underline"
                     >
-                      <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <CategoryIcon name={cat.icon} className="size-4" />
-                      </span>
-                      <span className="text-sm">{cat.label}</span>
+                      View all programs →
                     </Link>
-                  </DropdownMenuItem>
-                ))}
-              </div>
-              <DropdownMenuSeparator />
-              <div className="flex items-center justify-between px-1">
-                <Link
-                  href="/programs"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  View all programs →
-                </Link>
-                <Link
-                  href="/mock-tests"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Mock Tests
-                </Link>
+                    <Link
+                      href="/mock-tests"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Mock Tests
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right panel — highlights + quick enroll */}
+                <div className="border-l border-border bg-secondary/40 p-4">
+                  <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Highlights
+                  </p>
+                  <div className="space-y-0.5">
+                    {MEGA_HIGHLIGHTS.map((h) => (
+                      <DropdownMenuItem key={h.label} asChild>
+                        <Link
+                          href={h.href}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">{h.label}</span>
+                          {h.badge ? (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                              {h.badge}
+                            </span>
+                          ) : null}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <div className="mt-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 p-3 text-white shadow-sm">
+                    <p className="text-sm font-semibold">New here?</p>
+                    <p className="mt-0.5 text-xs text-white/85">
+                      Find a mentor and enroll in minutes.
+                    </p>
+                    <Link
+                      href="/programs"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
+                    >
+                      Quick enroll →
+                    </Link>
+                  </div>
+                </div>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
