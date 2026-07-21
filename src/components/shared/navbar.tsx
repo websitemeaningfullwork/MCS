@@ -121,22 +121,22 @@ export function Navbar() {
 
   const linkClass = (active: boolean) =>
     cn(
-      "rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+      "rounded-full px-4 py-2 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
       active
         ? "bg-secondary text-foreground"
         : "text-muted-foreground hover:bg-secondary hover:text-foreground",
     );
 
   return (
-    <header className="fixed inset-x-0 top-4 z-50 px-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-300">
+    <header className="fixed inset-x-0 top-5 z-50 px-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-300">
       <nav
         aria-label="Primary"
         className={cn(
-          "glass mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-2xl px-3 py-2 transition-shadow duration-300 sm:px-4",
+          "glass mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-[1.75rem] px-4 py-3 transition-shadow duration-300 sm:px-6",
           scrolled && "shadow-card",
         )}
       >
-        <Logo />
+        <Logo priority />
 
         {/* Desktop links */}
         <div className="hidden items-center gap-0.5 lg:flex">
