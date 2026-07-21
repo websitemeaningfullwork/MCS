@@ -1,25 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Check, CirclePlay, Lock } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { Markdown } from "@/components/shared/markdown";
-import { MarkCompleteButton } from "@/components/dashboard/mark-complete-button";
-import { cn } from "@/lib/utils";
+import { CoursePlayer } from "@/components/dashboard/course-player/course-player";
+import type {
+  PlayerQuestion,
+  PlayerResource,
+  PlayerSeason,
+} from "@/components/dashboard/course-player/types";
 
 export const metadata: Metadata = { title: "Learn" };
-
-/** Normalise a YouTube URL to an embeddable form. */
-function toEmbedUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.includes("/embed/")) return url;
-  const watch = url.match(/[?&]v=([^&]+)/);
-  if (watch) return `https://www.youtube.com/embed/${watch[1]}`;
-  const short = url.match(/youtu\.be\/([^?]+)/);
-  if (short) return `https://www.youtube.com/embed/${short[1]}`;
-  return url;
-}
 
 export default async function LearnPage({
   params,
@@ -57,145 +47,124 @@ export default async function LearnPage({
   const isAdmin = profile?.role === "admin";
   if (!enrollment && !isAdmin) redirect(`/programs/${programSlug}`);
 
-  // Curriculum + progress.
-  const { data: modules } = await supabase
+  // --- curriculum ----------------------------------------------------------
+  const { data: moduleRows } = await supabase
     .from("modules")
-    .select("id, title, sort_order")
+    .select("id, title, subtitle, sort_order")
     .eq("program_id", program.id)
     .order("sort_order", { ascending: true });
-  const moduleIds = (modules ?? []).map((m) => m.id);
+  const moduleIds = (moduleRows ?? []).map((m) => m.id);
 
-  const { data: lessons } = moduleIds.length
+  let lessonQuery = supabase
+    .from("lessons")
+    .select(
+      "id, module_id, title, video_url, overview_html, content_md, admin_notes, status, is_preview, duration_seconds, sort_order",
+    )
+    .in("module_id", moduleIds.length ? moduleIds : ["00000000-0000-0000-0000-000000000000"])
+    .order("sort_order", { ascending: true });
+  // Students only see published classes; admins previewing see everything.
+  if (!isAdmin) lessonQuery = lessonQuery.eq("status", "published");
+  const { data: lessonRows } = await lessonQuery;
+  const lessons = lessonRows ?? [];
+  const lessonIds = lessons.map((l) => l.id);
+
+  // Resources
+  const { data: resourceRows } = lessonIds.length
     ? await supabase
-        .from("lessons")
-        .select("id, module_id, title, video_url, content_md, sort_order")
-        .in("module_id", moduleIds)
+        .from("lesson_resources")
+        .select("id, lesson_id, title, type, file_url, external_url, sort_order")
+        .in("lesson_id", lessonIds)
         .order("sort_order", { ascending: true })
-    : { data: [] };
-  const allLessons = lessons ?? [];
+    : { data: [] as Array<Record<string, unknown>> };
 
-  const lessonIds = allLessons.map((l) => l.id);
-  const { data: progress } = lessonIds.length
+  // Quiz questions (via quizzes)
+  const { data: quizRows } = lessonIds.length
+    ? await supabase.from("quizzes").select("id, lesson_id").in("lesson_id", lessonIds)
+    : { data: [] as Array<{ id: string; lesson_id: string }> };
+  const lessonByQuiz = new Map<string, string>();
+  for (const q of quizRows ?? []) lessonByQuiz.set(q.id, q.lesson_id);
+  const quizIds = [...lessonByQuiz.keys()];
+
+  const { data: questionRows } = quizIds.length
+    ? await supabase
+        .from("quiz_questions")
+        .select("id, quiz_id, type, question, options, correct_answer, explanation, sort_order")
+        .in("quiz_id", quizIds)
+        .order("sort_order", { ascending: true })
+    : { data: [] as Array<Record<string, unknown>> };
+
+  // Progress
+  const { data: progressRows } = lessonIds.length
     ? await supabase
         .from("lesson_progress")
         .select("lesson_id, is_completed")
         .eq("user_id", user.id)
         .in("lesson_id", lessonIds)
-    : { data: [] };
-  const completedSet = new Set(
-    (progress ?? []).filter((p) => p.is_completed).map((p) => p.lesson_id),
-  );
+    : { data: [] as Array<{ lesson_id: string; is_completed: boolean | null }> };
+  const completed = (progressRows ?? [])
+    .filter((p) => p.is_completed)
+    .map((p) => p.lesson_id);
 
-  const current =
-    allLessons.find((l) => l.id === lessonParam) ?? allLessons[0] ?? null;
-  if (!current) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center">
-        <p className="font-semibold text-foreground">No lessons yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This program&apos;s content is being prepared.
-        </p>
-      </div>
-    );
+  // --- assemble ------------------------------------------------------------
+  const resourcesByLesson = new Map<string, PlayerResource[]>();
+  for (const r of resourceRows ?? []) {
+    const list = resourcesByLesson.get(r.lesson_id as string) ?? [];
+    list.push({
+      id: r.id as string,
+      title: r.title as string,
+      type: r.type as PlayerResource["type"],
+      file_url: (r.file_url as string) ?? null,
+      external_url: (r.external_url as string) ?? null,
+    });
+    resourcesByLesson.set(r.lesson_id as string, list);
   }
 
-  const embed = toEmbedUrl(current.video_url);
+  const questionsByLesson = new Map<string, PlayerQuestion[]>();
+  for (const q of questionRows ?? []) {
+    const lessonId = lessonByQuiz.get(q.quiz_id as string);
+    if (!lessonId) continue;
+    const list = questionsByLesson.get(lessonId) ?? [];
+    list.push({
+      id: q.id as string,
+      type: q.type as PlayerQuestion["type"],
+      question: q.question as string,
+      options: Array.isArray(q.options) ? (q.options as string[]) : [],
+      correct_answer: (q.correct_answer as string) ?? null,
+      explanation: (q.explanation as string) ?? null,
+    });
+    questionsByLesson.set(lessonId, list);
+  }
+
+  const seasons: PlayerSeason[] = (moduleRows ?? [])
+    .map((m) => ({
+      id: m.id,
+      title: m.title,
+      subtitle: m.subtitle ?? null,
+      lessons: lessons
+        .filter((l) => l.module_id === m.id)
+        .map((l) => ({
+          id: l.id,
+          title: l.title,
+          video_url: l.video_url ?? null,
+          overview_html: l.overview_html ?? null,
+          content_md: l.content_md ?? null,
+          admin_notes: l.admin_notes ?? null,
+          duration_seconds: l.duration_seconds ?? null,
+          is_preview: l.is_preview ?? false,
+          resources: resourcesByLesson.get(l.id) ?? [],
+          questions: questionsByLesson.get(l.id) ?? [],
+        })),
+    }))
+    .filter((s) => s.lessons.length > 0);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Link
-          href="/dashboard/programs"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {program.title}
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-        {/* Player + content */}
-        <div className="min-w-0 space-y-5">
-          <div className="aspect-video overflow-hidden rounded-2xl border border-border bg-black">
-            {embed ? (
-              <iframe
-                src={embed}
-                title={current.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="size-full"
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-sm text-muted-foreground">
-                No video for this lesson.
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
-              {current.title}
-            </h1>
-            <MarkCompleteButton
-              lessonId={current.id}
-              programId={program.id}
-              completed={completedSet.has(current.id)}
-            />
-          </div>
-
-          {current.content_md ? <Markdown content={current.content_md} /> : null}
-        </div>
-
-        {/* Curriculum */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-            <div className="border-b border-border p-4">
-              <h2 className="text-sm font-semibold text-foreground">Curriculum</h2>
-            </div>
-            <div className="max-h-[70vh] overflow-y-auto">
-              {(modules ?? []).map((mod) => {
-                const modLessons = allLessons.filter(
-                  (l) => l.module_id === mod.id,
-                );
-                return (
-                  <div key={mod.id} className="border-b border-border last:border-0">
-                    <p className="bg-secondary/40 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {mod.title}
-                    </p>
-                    <ul>
-                      {modLessons.map((l) => {
-                        const done = completedSet.has(l.id);
-                        const active = l.id === current.id;
-                        return (
-                          <li key={l.id}>
-                            <Link
-                              href={`/dashboard/learn/${programSlug}?lesson=${l.id}`}
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2.5 text-sm transition-colors",
-                                active
-                                  ? "bg-primary/10 font-medium text-foreground"
-                                  : "text-muted-foreground hover:bg-secondary/50",
-                              )}
-                            >
-                              {done ? (
-                                <Check className="size-4 shrink-0 text-success" />
-                              ) : active ? (
-                                <CirclePlay className="size-4 shrink-0 text-primary" />
-                              ) : (
-                                <Lock className="size-4 shrink-0 opacity-40" />
-                              )}
-                              <span className="line-clamp-1">{l.title}</span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
+    <CoursePlayer
+      program={{ id: program.id, title: program.title, slug: program.slug }}
+      seasons={seasons}
+      initialCompleted={completed}
+      initialLessonId={lessonParam ?? null}
+      askMentorHref={`/dashboard/questions/new?program=${program.id}`}
+      isAdminPreview={!enrollment && isAdmin}
+    />
   );
 }

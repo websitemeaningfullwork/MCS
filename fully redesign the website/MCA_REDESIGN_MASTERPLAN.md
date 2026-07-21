@@ -550,7 +550,7 @@ green used only for status across the whole app.
 | 1 | Site Settings + WhatsApp FAB + badge removal | ◐ Code-complete — **needs migration 009 applied to Supabase** | Build passes; homepage still static; FAB degrades gracefully pre-migration. Files: migration 009, `lib/site-settings.ts`, `features/admin/site-settings-actions.ts`, `components/shared/whatsapp-fab.tsx`, `components/admin/whatsapp-settings-form.tsx`, tabbed `admin/settings/page.tsx`, root layout mount, badge removed in `page.tsx`, `wa-float` keyframe in globals.css, sidebar label → "Settings". |
 | 2 | Homepage gogee8 sections + footer + mega menu | ✅ Done (build + SSR-verified) | Added About MCA, Student Success Stories carousel, Achievements/Winners gallery; footer social-proof metric strip + email; Programs mega menu (2-panel). New files: `marketing/carousel.tsx`, `testimonial-carousel.tsx`, `achievements-gallery.tsx`; constants expanded (TESTIMONIALS×6, ACHIEVEMENTS, MEGA_HIGHLIGHTS, FOOTER_METRICS). Testimonials are placeholder → Chunk 5 wires real approved reviews. No DB changes. |
 | 3 | LMS data model + admin course editor | ◐ Code-complete — **needs migration 010 applied to Supabase** | Build + typecheck + lint + 29 tests pass. Editor is dynamic (SSR on demand) and requires migration 010 (new tables/columns) before it can load. Files: migration `010_lms.sql` (program_mentors, lesson_resources, quizzes, quiz_questions + modules.subtitle + lessons.overview_html/thumbnail_url/admin_notes/status + program_status enum 'hidden' + `course-assets` public bucket + backfill from programs.mentor_id), types updated, `features/admin/program-editor-actions.ts` (granular autosave actions), rebuilt `admin/programs/[id]/edit/page.tsx` (loads full tree), new `components/admin/program-editor/*` (orchestrator, program-info-panel, season-tree, class-editor, rich-text-editor, resource-manager, quiz-manager, use-autosave, types). 3-column responsive workspace, debounced autosave + explicit Save, HTML5 drag-reorder for seasons & classes, multi-mentor + primary, class tabs Basic/Overview/Resources/Quiz/Notes. Old `module-manager.tsx` now orphaned (harmless). Resource/thumbnail uploads go to public `course-assets` bucket. |
-| 4 | Student course player | ☐ Not started | |
+| 4 | Student course player | ✅ Done (build + SSR-compile + dev smoke; enrolled-student drive not run — no test login) | Rebuilt `dashboard/learn/[programSlug]/page.tsx` to load the Chunk-3 tree (seasons→published classes + resources + quiz + notes) and render `components/dashboard/course-player/*`: `course-player.tsx` (orchestrator: client lesson state, optimistic mark-complete → `setLessonCompletion`, prev/next, auto-advance), `curriculum-sidebar.tsx` (collapsible seasons, % per season, green checks/current/empty, Course Resources shortcut), `youtube-embed.tsx` (nocookie, rel=0, inline), `lesson-tabs.tsx` (Overview/Resources/Q&A/Notes + interactive self-check quiz), `types.ts`. Students see published classes only; admins get an "Admin preview" badge and see all. Immersive full-width: added `dashboard-shell.tsx` (client) so `/dashboard/learn/*` opts out of the dashboard sidebar/max-w-6xl chrome; `dashboard/layout.tsx` delegates to it. Added `setLessonCompletion(lessonId, programId, completed)` toggle in `features/learning/actions.ts` (markLessonComplete now delegates). Reviews tab deferred to Chunk 5 (course.jpg shows 4 tabs). Old `mark-complete-button.tsx` now orphaned (harmless). Build + tsc + eslint + 29 tests pass; dev server: `/dashboard/learn/*` and `/dashboard` gate to login, `/programs` 200, no runtime errors. |
 | 5 | Review system + moderation + social proof | ☐ Not started | |
 | 6 | Mentor management (admin redesign) | ☐ Not started | |
 | 7 | Appointment booking system | ☐ Not started | |
@@ -559,8 +559,8 @@ green used only for status across the whole app.
 
 Status legend: ☐ Not started · ◐ In progress · ✅ Done (build + verified).
 
-**Latest migration number applied:** 009 (migration **010 authored but NOT yet
-applied** to Supabase — apply it to activate Chunk 3's LMS editor). Next new = 011.
+**Latest migration number applied:** 010 (Chunks 3 & 4 both active). Next new = 011
+(Chunk 5 `reviews`).
 **Session log:**
 - 2026-07-22 — Master plan authored. No code changes yet.
 - 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
@@ -586,6 +586,18 @@ applied** to Supabase — apply it to activate Chunk 3's LMS editor). Next new =
   vitest (29) all clean. **Migration 010 NOT yet applied** — the editor is dynamic and
   will error until the new tables/columns exist (same pattern as Chunk 1 → 009).
   Next: **Chunk 4 (Student Course Player)**, which consumes this data.
+- 2026-07-22 — Migration 010 applied by user. Chunk 4 built: premium student course
+  player replacing `dashboard/learn/[programSlug]`. Immersive full-width (new
+  `dashboard-shell.tsx` drops the dashboard chrome on `/dashboard/learn/*`), curriculum
+  sidebar with per-season % + green checks + current highlight, privacy-friendly
+  YouTube embed (nocookie/rel=0, plays inline), Overview/Resources/Q&A/Notes tabs with
+  an interactive self-check quiz, prev/next + optimistic Mark-as-Complete → rolls up
+  enrollment %. New `setLessonCompletion` toggle action. Students see published classes
+  only; admins get an Admin-preview badge over the full tree. `npm run build` + tsc +
+  eslint + vitest(29) clean; dev-server smoke: auth gate + public pages OK, no runtime
+  errors. Could not drive an enrolled-student session (no test login). Next: **Chunk 5
+  (Review system)** — wires the Reviews tab, unlock cards, moderation, and the homepage
+  Success Stories carousel (Chunk 2 placeholder) to real approved reviews.
 
 ---
 
