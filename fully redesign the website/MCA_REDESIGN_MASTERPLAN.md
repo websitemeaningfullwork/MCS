@@ -549,7 +549,7 @@ green used only for status across the whole app.
 |---|---|---|---|
 | 1 | Site Settings + WhatsApp FAB + badge removal | ◐ Code-complete — **needs migration 009 applied to Supabase** | Build passes; homepage still static; FAB degrades gracefully pre-migration. Files: migration 009, `lib/site-settings.ts`, `features/admin/site-settings-actions.ts`, `components/shared/whatsapp-fab.tsx`, `components/admin/whatsapp-settings-form.tsx`, tabbed `admin/settings/page.tsx`, root layout mount, badge removed in `page.tsx`, `wa-float` keyframe in globals.css, sidebar label → "Settings". |
 | 2 | Homepage gogee8 sections + footer + mega menu | ✅ Done (build + SSR-verified) | Added About MCA, Student Success Stories carousel, Achievements/Winners gallery; footer social-proof metric strip + email; Programs mega menu (2-panel). New files: `marketing/carousel.tsx`, `testimonial-carousel.tsx`, `achievements-gallery.tsx`; constants expanded (TESTIMONIALS×6, ACHIEVEMENTS, MEGA_HIGHLIGHTS, FOOTER_METRICS). Testimonials are placeholder → Chunk 5 wires real approved reviews. No DB changes. |
-| 3 | LMS data model + admin course editor | ☐ Not started | |
+| 3 | LMS data model + admin course editor | ◐ Code-complete — **needs migration 010 applied to Supabase** | Build + typecheck + lint + 29 tests pass. Editor is dynamic (SSR on demand) and requires migration 010 (new tables/columns) before it can load. Files: migration `010_lms.sql` (program_mentors, lesson_resources, quizzes, quiz_questions + modules.subtitle + lessons.overview_html/thumbnail_url/admin_notes/status + program_status enum 'hidden' + `course-assets` public bucket + backfill from programs.mentor_id), types updated, `features/admin/program-editor-actions.ts` (granular autosave actions), rebuilt `admin/programs/[id]/edit/page.tsx` (loads full tree), new `components/admin/program-editor/*` (orchestrator, program-info-panel, season-tree, class-editor, rich-text-editor, resource-manager, quiz-manager, use-autosave, types). 3-column responsive workspace, debounced autosave + explicit Save, HTML5 drag-reorder for seasons & classes, multi-mentor + primary, class tabs Basic/Overview/Resources/Quiz/Notes. Old `module-manager.tsx` now orphaned (harmless). Resource/thumbnail uploads go to public `course-assets` bucket. |
 | 4 | Student course player | ☐ Not started | |
 | 5 | Review system + moderation + social proof | ☐ Not started | |
 | 6 | Mentor management (admin redesign) | ☐ Not started | |
@@ -559,8 +559,8 @@ green used only for status across the whole app.
 
 Status legend: ☐ Not started · ◐ In progress · ✅ Done (build + verified).
 
-**Latest migration number applied:** 008 (migration **009 authored but NOT yet
-applied** to Supabase — apply it to activate Chunk 1). Next new = 010.
+**Latest migration number applied:** 009 (migration **010 authored but NOT yet
+applied** to Supabase — apply it to activate Chunk 3's LMS editor). Next new = 011.
 **Session log:**
 - 2026-07-22 — Master plan authored. No code changes yet.
 - 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
@@ -571,6 +571,21 @@ applied** to Supabase — apply it to activate Chunk 1). Next new = 010.
   Stories carousel, Achievements/Winners gallery), footer social-proof strip + email,
   Programs mega menu. Dependency-free scroll-snap `Carousel`. Build clean, `/` still
   static ISR; SSR HTML confirmed all new sections render. Next: **Chunk 3 (LMS)**.
+- 2026-07-22 — Chunk 3 built (code-complete): full LMS data model (migration 010) +
+  3-column autosaving admin course editor matching `programs.jpg`. Reuses modules=
+  Seasons, lessons=Classes; adds program_mentors (multi-mentor), lesson_resources,
+  quizzes, quiz_questions; adds lessons.overview_html/thumbnail_url/admin_notes/status
+  and modules.subtitle; adds 'hidden' to program_status; public `course-assets` bucket
+  for covers/thumbnails/resource files; backfills program_mentors from programs.mentor_id.
+  Granular server actions in `program-editor-actions.ts` (autosave, no revalidate on
+  keystrokes; structural ops touch public paths). New client editor under
+  `components/admin/program-editor/`: orchestrator holds all state, debounced autosave
+  + explicit Save, HTML5 drag-reorder for seasons/classes, dependency-free rich-text
+  editor (execCommand) for Overview, resource manager (file→course-assets or link),
+  quiz manager (mcq/true-false/short), notes. `npm run build` + `tsc` + eslint +
+  vitest (29) all clean. **Migration 010 NOT yet applied** — the editor is dynamic and
+  will error until the new tables/columns exist (same pattern as Chunk 1 → 009).
+  Next: **Chunk 4 (Student Course Player)**, which consumes this data.
 
 ---
 

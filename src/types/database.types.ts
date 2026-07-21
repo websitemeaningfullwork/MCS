@@ -225,18 +225,21 @@ export type Database = {
           id: string;
           program_id: string | null;
           title: string;
+          subtitle: string | null;
           sort_order: number | null;
         };
         Insert: {
           id?: string;
           program_id?: string | null;
           title: string;
+          subtitle?: string | null;
           sort_order?: number | null;
         };
         Update: {
           id?: string;
           program_id?: string | null;
           title?: string;
+          subtitle?: string | null;
           sort_order?: number | null;
         };
         Relationships: [];
@@ -248,6 +251,10 @@ export type Database = {
           title: string;
           video_url: string | null;
           content_md: string | null;
+          overview_html: string | null;
+          thumbnail_url: string | null;
+          admin_notes: string | null;
+          status: string;
           duration_seconds: number | null;
           is_preview: boolean | null;
           sort_order: number | null;
@@ -258,6 +265,10 @@ export type Database = {
           title: string;
           video_url?: string | null;
           content_md?: string | null;
+          overview_html?: string | null;
+          thumbnail_url?: string | null;
+          admin_notes?: string | null;
+          status?: string;
           duration_seconds?: number | null;
           is_preview?: boolean | null;
           sort_order?: number | null;
@@ -268,9 +279,127 @@ export type Database = {
           title?: string;
           video_url?: string | null;
           content_md?: string | null;
+          overview_html?: string | null;
+          thumbnail_url?: string | null;
+          admin_notes?: string | null;
+          status?: string;
           duration_seconds?: number | null;
           is_preview?: boolean | null;
           sort_order?: number | null;
+        };
+        Relationships: [];
+      };
+      program_mentors: {
+        Row: {
+          program_id: string;
+          mentor_id: string;
+          is_primary: boolean;
+          sort_order: number;
+          created_at: string | null;
+        };
+        Insert: {
+          program_id: string;
+          mentor_id: string;
+          is_primary?: boolean;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          program_id?: string;
+          mentor_id?: string;
+          is_primary?: boolean;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_resources: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          title: string;
+          type: string;
+          file_url: string | null;
+          external_url: string | null;
+          sort_order: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          title: string;
+          type?: string;
+          file_url?: string | null;
+          external_url?: string | null;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          title?: string;
+          type?: string;
+          file_url?: string | null;
+          external_url?: string | null;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      quizzes: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          title: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      quiz_questions: {
+        Row: {
+          id: string;
+          quiz_id: string;
+          type: string;
+          question: string;
+          options: Json;
+          correct_answer: string | null;
+          explanation: string | null;
+          sort_order: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          quiz_id: string;
+          type?: string;
+          question: string;
+          options?: Json;
+          correct_answer?: string | null;
+          explanation?: string | null;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          quiz_id?: string;
+          type?: string;
+          question?: string;
+          options?: Json;
+          correct_answer?: string | null;
+          explanation?: string | null;
+          sort_order?: number;
+          created_at?: string | null;
         };
         Relationships: [];
       };
@@ -936,7 +1065,7 @@ export type Database = {
     Enums: {
       user_role: "student" | "mentor" | "admin";
       program_level: "beginner" | "intermediate" | "advanced" | "all_levels";
-      program_status: "draft" | "published" | "archived";
+      program_status: "draft" | "published" | "archived" | "hidden";
       question_status: "waiting" | "answered" | "closed";
       question_visibility: "private" | "community";
       resource_kind:
