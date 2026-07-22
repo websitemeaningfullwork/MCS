@@ -31,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [programs, mentors, resources, posts] = await Promise.all([
     supabase.from("programs").select("slug, updated_at").eq("status", "published"),
-    supabase.from("mentors").select("id"),
+    supabase.from("public_mentors").select("id"),
     supabase.from("public_resources").select("slug"),
     supabase.from("blog_posts").select("slug, published_at").eq("status", "published"),
   ]);

@@ -152,9 +152,10 @@ export default async function HomePage() {
       .eq("is_featured", true)
       .limit(6),
     supabase
-      .from("mentors")
-      .select("id, headline, expertise, rating, reviews_count, is_verified")
+      .from("public_mentors")
+      .select("id, headline, expertise, rating, reviews_count, is_verified, full_name, avatar_url")
       .eq("is_featured", true)
+      .order("sort_order", { ascending: true })
       .limit(4),
     // Approved course reviews with a written body → Student Success Stories.
     supabase

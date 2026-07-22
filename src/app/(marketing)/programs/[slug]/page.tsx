@@ -77,19 +77,13 @@ export default async function ProgramDetailPage({
   const program = await getProgram(slug);
   if (!program) notFound();
 
-  // Mentor + curriculum in parallel.
-  const [mentorRes, profileRes, modulesRes] = await Promise.all([
+  // Mentor + curriculum in parallel. public_mentors joins profile + mentor fields
+  // and only returns publicly-visible mentors (honours visibility/status).
+  const [mentorRes, modulesRes] = await Promise.all([
     program.mentor_id
       ? supabase
-          .from("mentors")
-          .select("id, headline, expertise, rating, reviews_count, is_verified, years_experience")
-          .eq("id", program.mentor_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    program.mentor_id
-      ? supabase
-          .from("public_mentor_profiles")
-          .select("id, full_name, avatar_url, bio")
+          .from("public_mentors")
+          .select("id, full_name, avatar_url, bio, headline, is_verified")
           .eq("id", program.mentor_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -101,7 +95,6 @@ export default async function ProgramDetailPage({
   ]);
 
   const mentor = mentorRes.data;
-  const mentorProfile = profileRes.data;
   const modules = modulesRes.data ?? [];
 
   const moduleIds = modules.map((m) => m.id);
@@ -192,14 +185,14 @@ export default async function ProgramDetailPage({
               {program.subtitle}
             </p>
           ) : null}
-          {mentorProfile?.full_name ? (
+          {mentor?.full_name ? (
             <p className="mt-4 text-sm text-muted-foreground">
               Mentored by{" "}
               <Link
                 href={`/mentors/${program.mentor_id}`}
                 className="font-medium text-foreground hover:text-primary"
               >
-                {mentorProfile.full_name}
+                {mentor.full_name}
               </Link>
             </p>
           ) : null}
@@ -303,11 +296,11 @@ export default async function ProgramDetailPage({
             </TabsContent>
 
             <TabsContent value="mentor" className="mt-6">
-              {mentor && mentorProfile ? (
+              {mentor ? (
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold text-foreground">
-                      {mentorProfile.full_name}
+                      {mentor.full_name}
                     </h3>
                     {mentor.is_verified ? (
                       <BadgeCheck className="size-4 text-primary" />
@@ -316,9 +309,9 @@ export default async function ProgramDetailPage({
                   {mentor.headline ? (
                     <p className="text-sm text-primary">{mentor.headline}</p>
                   ) : null}
-                  {mentorProfile.bio ? (
+                  {mentor.bio ? (
                     <p className="mt-3 text-sm text-muted-foreground">
-                      {mentorProfile.bio}
+                      {mentor.bio}
                     </p>
                   ) : null}
                   <Button asChild variant="outline" size="sm" className="mt-4 rounded-full">

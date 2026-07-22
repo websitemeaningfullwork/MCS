@@ -16,7 +16,8 @@ export default async function AdminMentorsPage() {
 
   const { data: mentors } = await supabase
     .from("mentors")
-    .select("id, headline, is_verified, is_featured");
+    .select("id, headline, is_verified, is_featured, is_active, status, sort_order")
+    .order("sort_order", { ascending: true });
   const ids = (mentors ?? []).map((m) => m.id);
   const { data: profiles } = ids.length
     ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
@@ -56,6 +57,15 @@ export default async function AdminMentorsPage() {
                 <div className="flex items-center gap-2">
                   {m.is_featured ? <Badge variant="secondary">Featured</Badge> : null}
                   {m.is_verified ? <Badge>Verified</Badge> : null}
+                  {m.status && m.status !== "active" ? (
+                    <Badge variant="outline" className="capitalize text-muted-foreground">
+                      {m.status}
+                    </Badge>
+                  ) : m.is_active === false ? (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Inactive
+                    </Badge>
+                  ) : null}
                   <Button asChild size="sm" variant="ghost">
                     <Link href={`/admin/mentors/${m.id}/edit`}>
                       <Pencil className="size-4" />

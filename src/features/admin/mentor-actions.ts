@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, emailEnabled, escapeHtml } from "@/lib/email";
 import { absoluteUrl } from "@/lib/site-url";
+import { saveMentorSchema, type SaveMentorInput } from "./mentor-schema";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -83,44 +84,71 @@ export async function createMentor(input: {
   redirect(`/admin/mentors/${userId}/edit`);
 }
 
-export async function saveMentor(input: {
-  id: string;
-  full_name: string;
-  bio: string;
-  headline: string;
-  expertise: string[];
-  skills: string[];
-  years_experience: number;
-  whatsapp: string;
-  linkedin_url: string;
-  is_featured: boolean;
-  is_verified: boolean;
-}): Promise<{ error?: string }> {
+export async function saveMentor(
+  input: SaveMentorInput,
+): Promise<{ error?: string }> {
+  const parsed = saveMentorSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the mentor fields." };
+  }
+  const v = parsed.data;
+
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
 
-  await supabase
+  const nz = (s: string) => (s.trim() ? s.trim() : null);
+
+  const { error: profileErr } = await supabase
     .from("profiles")
-    .update({ full_name: input.full_name, bio: input.bio || null })
-    .eq("id", input.id);
+    .update({
+      full_name: v.full_name,
+      bio: nz(v.bio),
+      ...(v.avatar_url !== undefined ? { avatar_url: v.avatar_url } : {}),
+    })
+    .eq("id", v.id);
+  if (profileErr) {
+    console.error("saveMentor: profile update failed", profileErr);
+    return { error: "Could not save the mentor's basic info." };
+  }
 
   const { error } = await supabase
     .from("mentors")
     .update({
-      headline: input.headline || null,
-      expertise: input.expertise,
-      skills: input.skills,
-      years_experience: input.years_experience || null,
-      whatsapp: input.whatsapp || null,
-      linkedin_url: input.linkedin_url || null,
-      is_featured: input.is_featured,
-      is_verified: input.is_verified,
+      headline: nz(v.headline),
+      phone: nz(v.phone),
+      whatsapp: nz(v.whatsapp),
+      email: nz(v.email),
+      show_phone: v.show_phone,
+      show_whatsapp: v.show_whatsapp,
+      show_email: v.show_email,
+      expertise: v.expertise,
+      skills: v.skills,
+      years_experience: v.years_experience || null,
+      highest_qualification: nz(v.highest_qualification),
+      current_position: nz(v.current_position),
+      organization: nz(v.organization),
+      availability: v.availability,
+      session_duration: v.session_duration ?? null,
+      session_price_bdt: v.session_price_bdt,
+      currency: v.currency || "BDT",
+      facebook_url: nz(v.facebook_url),
+      youtube_url: nz(v.youtube_url),
+      linkedin_url: nz(v.linkedin_url),
+      is_featured: v.is_featured,
+      is_verified: v.is_verified,
+      is_active: v.is_active,
+      sort_order: v.sort_order,
+      status: v.status,
     })
-    .eq("id", input.id);
-  if (error) return { error: "Could not save the mentor." };
+    .eq("id", v.id);
+  if (error) {
+    console.error("saveMentor: mentor update failed", error);
+    return { error: "Could not save the mentor." };
+  }
 
   revalidatePath("/admin/mentors");
-  revalidatePath(`/mentors/${input.id}`);
+  revalidatePath("/mentors");
+  revalidatePath(`/mentors/${v.id}`);
   return {};
 }
 

@@ -23,16 +23,13 @@ export default async function MentorsPage({
   const page = parsePage(pageParam);
   const supabase = await createClient();
 
+  // public_mentors already filters to active, visible mentors and joins name/avatar.
   const { data: mentorRows } = await supabase
-    .from("mentors")
-    .select("id, headline, expertise, rating, reviews_count, is_verified");
+    .from("public_mentors")
+    .select("id, headline, expertise, rating, reviews_count, is_verified, full_name, avatar_url, sort_order")
+    .order("sort_order", { ascending: true });
 
   const rows = mentorRows ?? [];
-  const ids = rows.map((m) => m.id);
-  const { data: profiles } = ids.length
-    ? await supabase.from("public_mentor_profiles").select("id, full_name, avatar_url").in("id", ids)
-    : { data: [] };
-  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   let mentors: MentorCardData[] = rows.map((m) => ({
     id: m.id,
@@ -41,8 +38,8 @@ export default async function MentorsPage({
     rating: m.rating,
     reviews_count: m.reviews_count,
     is_verified: m.is_verified,
-    full_name: profileById.get(m.id)?.full_name ?? null,
-    avatar_url: profileById.get(m.id)?.avatar_url ?? null,
+    full_name: m.full_name,
+    avatar_url: m.avatar_url,
   }));
 
   // Expertise options (unique across all mentors).
