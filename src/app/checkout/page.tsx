@@ -5,34 +5,22 @@ import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
-  BadgeDollarSign,
   Check,
-  CheckCircle2,
-  Copy,
   Gift,
-  Hash,
-  Infinity as InfinityIcon,
   Lock,
-  Mail,
-  MessageCircle,
-  MessagesSquare,
-  QrCode,
-  Send,
   ShieldCheck,
-  Smartphone,
   Sparkles,
-  Star,
-  Upload,
-  Users,
-  Zap,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
-import { CopyNumberButton } from "@/components/checkout/copy-number-button";
 import { FreeEnrollButton } from "@/components/checkout/free-enroll-button";
+import { OrderSummaryCard } from "@/components/checkout/order-summary";
+import { BkashCard } from "@/components/checkout/bkash-card";
+import { HowToPay } from "@/components/checkout/how-to-pay";
+import { NeedHelp } from "@/components/checkout/need-help";
+import { TrustFooterStrip } from "@/components/checkout/footer-strip";
 import { formatBDT, effectivePriceBDT, hasDiscount } from "@/lib/format";
-import { SITE, COMMUNITY } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Secure Checkout",
@@ -54,65 +42,6 @@ const BONUS_ITEMS = [
   "Ready-to-use Templates",
   "Private Community Access",
   "Mock Tests & Quizzes",
-] as const;
-
-const PAY_STEPS = [
-  {
-    title: "Open bKash",
-    detail: "Launch the bKash app on your phone.",
-    icon: Smartphone,
-    tint: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
-    badge: "bg-pink-600",
-  },
-  {
-    title: "Tap Send Money",
-    detail: "Choose the Send Money option.",
-    icon: Send,
-    tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    badge: "bg-orange-500",
-  },
-  {
-    title: "Enter the Number",
-    detail: "Type the payment number shown above.",
-    icon: Hash,
-    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-    badge: "bg-violet-600",
-  },
-  {
-    title: "Enter Amount",
-    detail: "Enter the exact amount to pay.",
-    icon: BadgeDollarSign,
-    tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    badge: "bg-blue-600",
-  },
-  {
-    title: "Confirm Payment",
-    detail: "Complete the payment with your PIN.",
-    icon: CheckCircle2,
-    tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    badge: "bg-emerald-600",
-  },
-  {
-    title: "Copy Transaction ID",
-    detail: "Copy the TrxID from your confirmation.",
-    icon: Copy,
-    tint: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-    badge: "bg-indigo-600",
-  },
-  {
-    title: "Submit Details",
-    detail: "Fill the form and submit for verification.",
-    icon: Upload,
-    tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    badge: "bg-orange-500",
-  },
-] as const;
-
-const FOOTER_STRIP = [
-  { label: "SSL Secured", icon: Lock },
-  { label: "100% Safe Payment", icon: ShieldCheck },
-  { label: "Manual Verification", icon: BadgeCheck },
-  { label: "Fast Confirmation", icon: Zap },
 ] as const;
 
 export default async function CheckoutPage({
@@ -185,8 +114,6 @@ export default async function CheckoutPage({
     .limit(1)
     .maybeSingle();
 
-  const ratingValue = rating ?? 0;
-
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:py-12">
       {/* ================= TOP HEADER ================= */}
@@ -224,59 +151,14 @@ export default async function CheckoutPage({
                 LEFT COLUMN — everything about the course
                 ============================================================ */}
             <div className="space-y-6">
-              {/* Order summary card */}
-              <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
-                <div className="flex gap-4 p-5 sm:p-6">
-                  <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/15 via-secondary to-sky-400/15 sm:size-28">
-                    {coverUrl ? (
-                      <Image
-                        src={coverUrl}
-                        alt={title}
-                        fill
-                        sizes="112px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex size-full items-center justify-center">
-                        <span className="text-2xl font-semibold text-blue-600/40">
-                          {title.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-semibold text-foreground">{title}</h2>
-                    {subtitle ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {subtitle}
-                      </p>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      {ratingValue > 0 ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="size-3.5 fill-amber-400 text-amber-400" />
-                          <span className="font-medium text-foreground">
-                            {ratingValue.toFixed(1)}
-                          </span>
-                          {reviewsCount ? <span>({reviewsCount})</span> : null}
-                        </span>
-                      ) : null}
-                      {enrolledCount && enrolledCount > 0 ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Users className="size-3.5" />
-                          {enrolledCount.toLocaleString("en-US")} students
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-                <div className="border-t border-border px-5 py-3 sm:px-6">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-                    <InfinityIcon className="size-3.5" />
-                    Lifetime Access
-                  </span>
-                </div>
-              </section>
+              <OrderSummaryCard
+                title={title}
+                subtitle={subtitle}
+                coverUrl={coverUrl}
+                rating={rating}
+                reviewsCount={reviewsCount}
+                enrolledCount={enrolledCount}
+              />
 
               {/* What you will get */}
               <section className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">
@@ -365,73 +247,7 @@ export default async function CheckoutPage({
                 RIGHT COLUMN — everything about payment
                 ============================================================ */}
             <div className="space-y-6">
-              {/* Payment method card */}
-              <section className="overflow-hidden rounded-3xl border border-pink-500/20 bg-card shadow-card">
-                <div className="flex items-center justify-between border-b border-border bg-pink-500/5 px-5 py-4 sm:px-6">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-9 items-center justify-center rounded-xl bg-[#e2136e]/10 text-[#e2136e]">
-                      <Smartphone className="size-5" />
-                    </span>
-                    <h2 className="font-semibold text-foreground">
-                      Payment Method
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
-                    <ShieldCheck className="size-3.5" />
-                    100% Secure
-                  </span>
-                </div>
-
-                {settings ? (
-                  <div className="p-5 sm:p-6">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-[#e2136e] px-2 py-0.5 text-xs font-bold text-white">
-                        bKash
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Send Money
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          Payment Number
-                        </p>
-                        <p className="mt-1 text-2xl font-bold tracking-wide text-foreground sm:text-3xl">
-                          {settings.bkash_number}
-                        </p>
-                        <div className="mt-3">
-                          <CopyNumberButton value={settings.bkash_number} />
-                        </div>
-                      </div>
-
-                      {/* QR tile */}
-                      <div className="flex shrink-0 flex-col items-center gap-1.5">
-                        <div className="flex size-24 items-center justify-center rounded-2xl border border-pink-500/20 bg-white text-[#e2136e] shadow-sm transition-transform duration-300 hover:scale-105">
-                          <QrCode className="size-14" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          Scan &amp; Pay
-                        </span>
-                      </div>
-                    </div>
-
-                    {settings.instructions ? (
-                      <p className="mt-4 rounded-xl bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
-                        {settings.instructions}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="p-5 sm:p-6">
-                    <p className="text-sm text-muted-foreground">
-                      Payment details are being configured. Please check back
-                      shortly or contact support.
-                    </p>
-                  </div>
-                )}
-              </section>
+              <BkashCard settings={settings} />
 
               {/* Verify payment card */}
               {settings ? (
@@ -461,160 +277,12 @@ export default async function CheckoutPage({
             </div>
           </div>
 
-          {/* ============================================================
-              HOW TO PAY
-              ============================================================ */}
-          <section className="mt-14">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                How to Pay with bKash
-              </h2>
-              <p className="mt-2 text-muted-foreground">
-                Seven simple steps — you&apos;ll be done in under a minute.
-              </p>
-            </div>
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
-              {PAY_STEPS.map((step, i) => (
-                <div
-                  key={step.title}
-                  className="card-hover flex h-full flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4 text-center shadow-card"
-                >
-                  <div className="relative">
-                    <span
-                      className={`flex size-12 items-center justify-center rounded-2xl ${step.tint}`}
-                    >
-                      <step.icon className="size-6" />
-                    </span>
-                    <span
-                      className={`absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full text-xs font-bold text-white ${step.badge}`}
-                    >
-                      {i + 1}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {step.title}
-                  </p>
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    {step.detail}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ============================================================
-              NEED HELP
-              ============================================================ */}
-          <section className="mt-14">
-            <div className="grid items-center gap-6 rounded-3xl border border-border bg-gradient-to-br from-blue-500/5 via-card to-sky-400/5 p-6 shadow-card md:grid-cols-2 sm:p-8">
-              <div>
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <MessagesSquare className="size-6" />
-                </span>
-                <h2 className="mt-4 text-xl font-bold tracking-tight text-foreground">
-                  Need help with your payment?
-                </h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Our support team is here for you. Reach out any way you like —
-                  we usually reply fast.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <HelpCard
-                  href={COMMUNITY.whatsapp || "/contact"}
-                  external={Boolean(COMMUNITY.whatsapp)}
-                  icon={MessageCircle}
-                  label="WhatsApp"
-                  hint="Chat with us"
-                  tint="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                />
-                <HelpCard
-                  href="/contact"
-                  icon={MessagesSquare}
-                  label="Live Chat"
-                  hint="Send a message"
-                  tint="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                />
-                <HelpCard
-                  href={`mailto:${SITE.email}`}
-                  external
-                  icon={Mail}
-                  label="Email"
-                  hint={SITE.email}
-                  tint="bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                />
-                <HelpCard
-                  href={COMMUNITY.facebook || "/contact"}
-                  external={Boolean(COMMUNITY.facebook)}
-                  icon={Send}
-                  label="Messenger"
-                  hint="Message us"
-                  tint="bg-sky-500/10 text-sky-600 dark:text-sky-400"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* ============================================================
-              FOOTER STRIP
-              ============================================================ */}
-          <section className="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 rounded-3xl border border-border bg-card px-6 py-5 shadow-card">
-            {FOOTER_STRIP.map((item) => (
-              <span
-                key={item.label}
-                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
-              >
-                <item.icon className="size-4 text-success" />
-                {item.label}
-              </span>
-            ))}
-          </section>
+          <HowToPay />
+          <NeedHelp />
+          <TrustFooterStrip className="mt-10" />
         </>
       )}
     </div>
-  );
-}
-
-function HelpCard({
-  href,
-  external,
-  icon: Icon,
-  label,
-  hint,
-  tint,
-}: {
-  href: string;
-  external?: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  hint: string;
-  tint: string;
-}) {
-  const inner = (
-    <>
-      <span className={`flex size-10 items-center justify-center rounded-xl ${tint}`}>
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-foreground">{label}</p>
-        <p className="truncate text-xs text-muted-foreground">{hint}</p>
-      </div>
-    </>
-  );
-  const className =
-    "card-hover flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card";
-
-  if (external) {
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
-        {inner}
-      </a>
-    );
-  }
-  return (
-    <Link href={href} className={className}>
-      {inner}
-    </Link>
   );
 }
 

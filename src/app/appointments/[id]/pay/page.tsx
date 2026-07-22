@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import {
-  CalendarDays,
-  Clock,
-  Lock,
-  QrCode,
-  ShieldCheck,
-  Smartphone,
-  User,
-  Video,
-} from "lucide-react";
+import { CalendarDays, Clock, Lock, User, Video } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { CopyNumberButton } from "@/components/checkout/copy-number-button";
+import { BkashCard } from "@/components/checkout/bkash-card";
+import { HowToPay } from "@/components/checkout/how-to-pay";
+import { TrustFooterStrip } from "@/components/checkout/footer-strip";
 import { AppointmentPaymentForm } from "@/components/appointments/appointment-payment-form";
 import { formatSlotLabel } from "@/features/appointments/slots";
 import { formatBDT } from "@/lib/format";
@@ -87,52 +80,7 @@ export default async function AppointmentPayPage({
 
         {/* Payment */}
         <section className="space-y-6">
-          <div className="overflow-hidden rounded-3xl border border-pink-500/20 bg-card shadow-card">
-            <div className="flex items-center justify-between border-b border-border bg-pink-500/5 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#e2136e]/10 text-[#e2136e]">
-                  <Smartphone className="size-5" />
-                </span>
-                <h2 className="font-semibold text-foreground">Payment Method</h2>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
-                <ShieldCheck className="size-3.5" /> Secure
-              </span>
-            </div>
-            {settings ? (
-              <div className="p-5">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-lg bg-[#e2136e] px-2 py-0.5 text-xs font-bold text-white">
-                    bKash
-                  </span>
-                  <span className="text-sm text-muted-foreground">Send Money</span>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Payment Number</p>
-                    <p className="mt-1 text-2xl font-bold tracking-wide text-foreground">
-                      {settings.bkash_number}
-                    </p>
-                    <div className="mt-3">
-                      <CopyNumberButton value={settings.bkash_number} />
-                    </div>
-                  </div>
-                  <div className="flex size-20 items-center justify-center rounded-2xl border border-pink-500/20 bg-white text-[#e2136e]">
-                    <QrCode className="size-12" />
-                  </div>
-                </div>
-                {settings.instructions ? (
-                  <p className="mt-4 rounded-xl bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
-                    {settings.instructions}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="p-5 text-sm text-muted-foreground">
-                Payment details are being configured. Please contact support.
-              </div>
-            )}
-          </div>
+          <BkashCard settings={settings} />
 
           {settings ? (
             <div className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">
@@ -151,6 +99,9 @@ export default async function AppointmentPayPage({
           ) : null}
         </section>
       </div>
+
+      <HowToPay />
+      <TrustFooterStrip className="mt-10" />
     </div>
   );
 }
