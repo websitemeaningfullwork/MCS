@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminNotification, notify } from "@/features/notifications/service";
 import { effectivePriceBDT } from "@/lib/format";
 import { rateLimitByIp } from "@/lib/rate-limit";
 import { manualPaymentSchema, type ManualPaymentInput } from "./schemas";
@@ -147,6 +148,24 @@ export async function submitManualPayment(
     }
     return { error: "Could not submit your payment. Please try again." };
   }
+
+  // In-app notifications (Chunk 9): confirm to the buyer, alert the admin team.
+  await notify([
+    {
+      user_id: user.id,
+      role: "student",
+      type: "payment_submitted",
+      title: "Payment submitted",
+      body: `We received your bKash payment for “${item.title}”. We'll verify it within 24 hours.`,
+      payload: { order_id: order.id, href: `/dashboard/orders/${order.id}` },
+    },
+    adminNotification(
+      "payment_submitted",
+      "New payment to verify",
+      `৳${paid_amount_bdt} via bKash for “${item.title}” (TrxID ${transaction_id}).`,
+      { order_id: order.id, href: "/admin/payments" },
+    ),
+  ]);
 
   redirect(`/dashboard/orders/${order.id}`);
 }

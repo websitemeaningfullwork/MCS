@@ -3,12 +3,19 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { adminNotification, notify } from "@/features/notifications/service";
 import {
   answerSchema,
   createQuestionSchema,
   type AnswerInput,
   type CreateQuestionInput,
 } from "./schemas";
+
+/** Short excerpt of a reply for a notification body. */
+function excerpt(text: string, max = 120): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
 
 export async function createQuestion(
   input: CreateQuestionInput,
@@ -36,6 +43,25 @@ export async function createQuestion(
     .select("id")
     .single();
   if (error || !data) return { error: "Could not submit your question." };
+
+  // In-app notifications (Chunk 9): alert the assigned mentor + the admin team.
+  const rows = [
+    adminNotification("question_new", "New student question", excerpt(parsed.data.title), {
+      question_id: data.id,
+      href: `/admin/questions/${data.id}`,
+    }),
+  ];
+  if (parsed.data.mentor_id) {
+    rows.unshift({
+      user_id: parsed.data.mentor_id,
+      role: "mentor",
+      type: "question_new",
+      title: "New question for you",
+      body: excerpt(parsed.data.title),
+      payload: { question_id: data.id, href: `/mentor/questions/${data.id}` },
+    });
+  }
+  await notify(rows);
 
   redirect(`/dashboard/questions/${data.id}`);
 }
@@ -90,6 +116,43 @@ export async function postAnswer(
       .from("questions")
       .update({ status: "answered" })
       .eq("id", questionId);
+  }
+
+  // In-app notifications (Chunk 9): fan the reply out to the other side.
+  const preview = excerpt(parsed.data.body);
+  if (question.student_id === user.id) {
+    // The student replied → alert the assigned mentor, else the admin team.
+    await notify(
+      question.mentor_id
+        ? [
+            {
+              user_id: question.mentor_id,
+              role: "mentor",
+              type: "question_reply",
+              title: "New reply from your student",
+              body: preview,
+              payload: { question_id: questionId, href: `/mentor/questions/${questionId}` },
+            },
+          ]
+        : [
+            adminNotification("question_reply", "Student replied to a question", preview, {
+              question_id: questionId,
+              href: `/admin/questions/${questionId}`,
+            }),
+          ],
+    );
+  } else if (question.student_id) {
+    // A mentor/admin/community member replied → alert the question owner.
+    await notify([
+      {
+        user_id: question.student_id,
+        role: "student",
+        type: "question_answered",
+        title: "Your question has a new reply",
+        body: preview,
+        payload: { question_id: questionId, href: `/dashboard/questions/${questionId}` },
+      },
+    ]);
   }
 
   revalidatePath(`/dashboard/questions/${questionId}`);

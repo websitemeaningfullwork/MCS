@@ -45,6 +45,12 @@ export interface Dict {
     tagline: string;
     rights: string;
   };
+  notifications: {
+    title: string;
+    markAllRead: string;
+    empty: string;
+    unread: string;
+  };
 }
 
 export const dictionaries: Record<Lang, Dict> = {
@@ -82,6 +88,12 @@ export const dictionaries: Record<Lang, Dict> = {
       tagline: "Guidance, not just courses.",
       rights: "All rights reserved.",
     },
+    notifications: {
+      title: "Notifications",
+      markAllRead: "Mark all as read",
+      empty: "No notifications yet.",
+      unread: "unread",
+    },
   },
   bn: {
     nav: {
@@ -116,6 +128,12 @@ export const dictionaries: Record<Lang, Dict> = {
       legal: "লিগ্যাল",
       tagline: "শুধু কোর্স নয়, দিকনির্দেশনা।",
       rights: "সর্বস্বত্ব সংরক্ষিত।",
+    },
+    notifications: {
+      title: "নোটিফিকেশন",
+      markAllRead: "সব পঠিত চিহ্নিত করুন",
+      empty: "এখনও কোনো নোটিফিকেশন নেই।",
+      unread: "অপঠিত",
     },
   },
 };

@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminNotification, notify } from "@/features/notifications/service";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import {
@@ -241,6 +242,14 @@ export async function submitReview(input: SubmitReviewInput): Promise<Result<{ i
       console.error("submitReview: update failed", error);
       return { error: "Could not save your review. Please try again." };
     }
+    await notify([
+      adminNotification(
+        "review_pending",
+        "Review updated — needs re-approval",
+        `A ${v.rating}-star ${v.scope} review was resubmitted and is awaiting moderation.`,
+        { review_id: existing.id, href: "/admin/reviews" },
+      ),
+    ]);
     revalidatePath("/dashboard/reviews");
     return { data: { id: existing.id } };
   }
@@ -264,6 +273,16 @@ export async function submitReview(input: SubmitReviewInput): Promise<Result<{ i
     console.error("submitReview: insert failed", error);
     return { error: "Could not save your review. Please try again." };
   }
+
+  // In-app notification (Chunk 9): new reviews land in the moderation queue.
+  await notify([
+    adminNotification(
+      "review_pending",
+      "New review awaiting approval",
+      `A ${v.rating}-star ${v.scope} review was submitted.`,
+      { review_id: data.id, href: "/admin/reviews" },
+    ),
+  ]);
 
   revalidatePath("/dashboard/reviews");
   return { data: { id: data.id } };
@@ -304,6 +323,15 @@ export async function updateOwnReview(input: {
 
   // If it had been public, it now leaves the approved set → refresh aggregates.
   if (wasApproved) await recomputeAggregates(existing.program_id);
+
+  await notify([
+    adminNotification(
+      "review_pending",
+      "Review updated — needs re-approval",
+      `A ${rating}-star review was edited and is awaiting moderation.`,
+      { review_id: reviewId, href: "/admin/reviews" },
+    ),
+  ]);
 
   revalidatePath("/dashboard/reviews");
   return {};
@@ -348,7 +376,7 @@ export async function setReviewStatus(
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from("reviews")
-    .select("id, program_id")
+    .select("id, program_id, user_id, status")
     .eq("id", reviewId)
     .maybeSingle();
   if (!existing) return { error: "Review not found." };
@@ -360,6 +388,20 @@ export async function setReviewStatus(
   }
 
   await recomputeAggregates(existing.program_id);
+
+  // Tell the author their review went live (Chunk 9 navbar bell).
+  if (status === "approved" && existing.status !== "approved") {
+    await notify([
+      {
+        user_id: existing.user_id,
+        role: "student",
+        type: "review_approved",
+        title: "Your review is now live",
+        body: "Thanks for sharing your experience — an admin approved your review.",
+        payload: { review_id: reviewId, href: "/dashboard/reviews" },
+      },
+    ]);
+  }
 
   revalidatePath("/admin/reviews");
   revalidatePath("/"); // homepage testimonials

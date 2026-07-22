@@ -555,18 +555,19 @@ green used only for status across the whole app.
 | 6 | Mentor management (admin redesign) | ◐ Code-complete — **needs migration 012 applied to Supabase** | Build + tsc + eslint + 29 tests pass; dev smoke: `/mentors` 200, admin gated 307→login, degrades gracefully pre-migration. Files: migration `012_mentor_management.sql` (mentors + phone/email/show_* toggles/highest_qualification/current_position/organization/availability jsonb/session_duration(min)/session_price_bdt/currency/facebook_url/youtube_url/is_active/sort_order/status; extended `protect_mentors_columns` guard to also lock is_active/status/sort_order; **LOCKED base `mentors` to own-or-admin** and added visibility-gated `public_mentors` view (contact nulled unless show_*, only active mentors); `avatars: admin write` storage policy). Types updated (mentors columns + public_mentors view). `features/admin/mentor-schema.ts` (zod + WEEKDAYS/SESSION_DURATIONS/availability), rewrote `saveMentor`. Rebuilt `admin/mentors/[id]/edit` + `components/admin/mentor-form.tsx` as the single-page editor matching `mentors.jpg` (profile photo upload/remove → avatars bucket, Basic, Contact+Visibility toggles, Expertise/Skills tag inputs via new `tag-input.tsx`, Professional, Availability days/hours/breaks, Session&Pricing, Social, Featured/Verified/Active/Sort/Status). New `components/shared/social-icons.tsx` (lucide dropped brand icons). **Repointed all anon mentor reads to `public_mentors`**: mentors list, mentor detail (now shows session price/availability/socials/gated contact), program detail mentor tab, homepage featured, sitemap. Admin list shows status/inactive badges + sort order. bio stays on profiles.bio. |
 | 7 | Appointment booking system | ◐ Code-complete — **needs migrations 012 + 013 applied to Supabase** | Build + tsc + eslint + vitest(36, +7 new slot tests) clean; dev smoke: `/` 200, `/appointments` + `/dashboard/appointments` + `/admin/appointments` 307→login, no runtime errors, degrades gracefully pre-migration. Files: migration `013_appointments.sql` (`appointment_types` seeded with the 7 default types, `appointments` with self-contained manual-bKash payment fields + slot unique index + `protect_appointments` guard trigger blocking student self-confirm/self-pay, `notifications` for student/mentor/admin) + RLS. Types updated. `features/appointments/{slots,schema,actions,admin-actions}.ts`: pure TZ-safe slot generation from mentor `availability`+`session_duration` (extended jsonb with optional `max_per_day`+`unavailable_dates`), student actions (getDaySlots/getMentorsForSlot union across active mentors via `public_mentors`, createAppointment→pending, submitAppointmentPayment→submitted+redirect, cancel/reschedule/getRescheduleSlots), admin actions (type CRUD, status/payment/mentor/reschedule/meeting-link/delete, saveMentorSchedule, getMentorDaySlots). `features/notifications/{service,actions}.ts` (service-role fan-out + mark-read). Public 5-step wizard `app/appointments/page.tsx`+`components/appointments/booking-wizard.tsx` (progress bar, type cards, month calendar+slots w/ available/selected/booked legend, details form, mentor cards, review summary) → `[id]/pay` (bKash card + `appointment-payment-form.tsx`) → `[id]/confirmation`. Dashboard `dashboard/appointments` My Appointments (`my-appointments.tsx`: upcoming/completed/cancelled tabs, cancel, reschedule dialog, join, pay-now, payment status). Admin `admin/appointments` (KPIs + today's list + `admin-notifications.tsx`), `/all` (`appointments-table.tsx`: search/filter + per-row Manage dialog), `/calendar` (monthly booking counts), `/schedule` (`mentor-schedule-editor.tsx`: days/hours/breaks/max-per-day/holidays), `/types` (`types-manager.tsx`). Nav: `Appointments` added to navbar + admin/dashboard sidebars + i18n EN/বাংলা; proxy protects `/appointments`. Shared `appointment-icon.tsx` (string-key registry), `status-badge.tsx` (green=confirmed/paid/completed only). Slots derived at request time — no slot table. |
 | 8 | Checkout redesign | ✅ Done (build + tsc + eslint + vitest(36) + dev smoke) | The premium two-column checkout already matched the spec; Chunk 8 **componentised** it into the masterplan's named reusable pieces and aligned the How-to-Pay steps to the spec's exact titles/colours. New `components/checkout/*`: `order-summary.tsx` (thumbnail/rating/students/lifetime badge), `bkash-card.tsx` (pink-confined payment card w/ copy + QR, null-safe), `how-to-pay.tsx` (7 cards, each own accent: Pink/Orange/Purple/Blue/Green/Indigo/Orange), `need-help.tsx` (4 channel cards), `footer-strip.tsx` (SSL/Safe/Manual/Fast, green trust icons). `checkout/page.tsx` now composes them (benefits/bonus/pricing + FreeCheckout stay inline — checkout-specific). Verify form was already spec-perfect (`checkout-form.tsx`: sender/TrxID/amount, drag-drop PNG/JPG/JPEG/WEBP ≤5MB, "Submit Payment for Verification", 24h note). **Cross-cut win:** the Chunk-7 appointment pay page now reuses `BkashCard` + `HowToPay` + `TrustFooterStrip`, dropping its duplicated inline bKash card. No DB changes. Green kept status/trust-only; bKash pink confined to the payment card. |
-| 9 | Notifications + i18n + final QA | ☐ Not started | |
+| 9 | Notifications + i18n + final QA | ✅ Done (build + tsc + eslint + vitest(36) + dev smoke; migrations 012+013 verified live) | Navbar bell wired for all roles: new `components/shared/notification-bell.tsx` (client island — RLS-scoped browser reads keep the root layout static; personal feed + admin broadcast, unread badge, mark-one/mark-all read, per-type icon chips blue/violet/orange/amber, payload `href` deep links w/ role-based fallback for old Chunk-7 rows, refetch on open/focus, degrades to empty pre-migration). Navbar shows the live bell when authed, login-link bell otherwise. Fan-out completed for the remaining event sources: payments (`submitManualPayment`→student receipt + admin "New payment to verify"; `approvePayment`→"access granted"; `rejectPayment`→reason), questions (`createQuestion`→assigned mentor + admins; `postAnswer`→student reply alerts mentor-else-admins, staff reply alerts the owner), reviews (`submitReview`/`updateOwnReview`→admin moderation queue; `setReviewStatus` approved→"Your review is now live"). Appointments already fanned out (Chunk 7). i18n: `notifications` dict section (title/markAllRead/empty/unread) EN + বাংলা, consumed by the bell. Green stayed status-only (badge=destructive red, unread dot=primary). Homepage still static ISR; only pre-existing OG-image lint warning remains. |
 
 Status legend: ☐ Not started · ◐ In progress · ✅ Done (build + verified).
 
-**Latest migration number applied:** 011 (Chunks 1–5 active). **Migrations 012
-(Chunk 6) and 013 (Chunk 7) authored but NOT yet applied.** Apply 012 first (it
-locks the base `mentors` table and routes public reads through `public_mentors`;
-mentor pages degrade to empty/404 until applied), then 013 (appointment_types +
-appointments + notifications). Chunk 7's booking wizard reads mentor availability
-via `public_mentors`, so it needs BOTH 012 and 013 live to work end-to-end; until
-then `/appointments` shows the "booking is being set up" empty state and admin
-appointment pages show zeroes. Next new = 014 (Chunk 8 checkout redesign — no DB).
+**Latest migration number applied:** 013 — ALL migrations live; verified
+2026-07-22 via anon PostgREST probes: `appointment_types` returns the 7 seeded
+types, `notifications` + `appointments` exist (RLS-empty for anon, no PGRST205),
+`public_mentors` exposes every Chunk-6 column with visibility gating working
+(contact nulled unless its show_* toggle is on), and the base `mentors` table is
+locked to own-or-admin. Chunks 1–9 fully active. **Next new migration = 014.**
+Operational note: no mentor has `availability`/`session_duration` configured yet,
+so the booking wizard shows no slots until Admin → Appointments → Mentor Schedule
+is filled in for at least one mentor.
 **Session log:**
 - 2026-07-22 — Master plan authored. No code changes yet.
 - 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
@@ -679,6 +680,39 @@ appointment pages show zeroes. Next new = 014 (Chunk 8 checkout redesign — no 
   + vitest(36) clean; dev smoke: `/checkout` gates 307→login, no runtime errors.
   Next: **Chunk 9 (Notifications + i18n + final QA)** — wire the navbar bell to the
   Chunk-7 `notifications` table for all roles, finish EN/বাংলা keys, full a11y/build pass.
+- 2026-07-22 — Chunk 9 done: navbar notification bell + fan-out completion + i18n +
+  final QA. New `components/shared/notification-bell.tsx` — a client island in the
+  navbar (authed users only; unauthed keep the login-link bell) that reads the
+  caller's RLS-scoped feed (personal rows + admin broadcast for admins) with the
+  browser client so the root layout/public pages stay static. Unread-count badge
+  (destructive red, "9+" cap), premium dropdown panel (per-event icon chips:
+  appointments=blue, payments=violet, questions=orange, reviews=amber), mark-one on
+  click + mark-all-read (single RLS-scoped unfiltered update), payload-`href` deep
+  links with a role-based fallback for pre-Chunk-9 appointment rows, refetch on
+  open/focus, graceful empty state pre-migration-013. Completed the notification
+  fan-out for every masterplan event source (appointments were already wired in
+  Chunk 7): payments — `submitManualPayment` (student receipt + admin "New payment
+  to verify" with amount/TrxID), `approvePayment` ("Payment verified — access
+  granted"), `rejectPayment` (with admin note); questions — `createQuestion`
+  (assigned mentor + admin broadcast), `postAnswer` (student reply → mentor
+  else admins; staff/community reply → question owner, with reply excerpt);
+  reviews — `submitReview` + `updateOwnReview` (admin moderation queue),
+  `setReviewStatus` approved (author "Your review is now live", only on actual
+  transition). i18n: new `notifications` dict section (title / markAllRead / empty /
+  unread) in EN + বাংলা, consumed by the bell. QA: `npm run build` clean (homepage
+  still static ISR ○ 5m), tsc + eslint (0 errors; only the pre-existing OG-image
+  `<img>` warning) + vitest(36) clean; dev smoke: `/`, `/programs`, `/mentors` 200,
+  `/appointments` + `/dashboard` + `/admin/appointments` + `/checkout` 307→login,
+  no runtime errors, bell SSRs in the navbar. Green stayed status-only. **The live
+  feed needs migrations 012 + 013 applied** (bell + fan-out degrade gracefully until
+  then). All 9 chunks are now code-complete → apply 012 + 013, then drive the §13
+  definition-of-done end-to-end.
+- 2026-07-22 — Migrations 012 + 013 confirmed applied (user applied; verified live
+  via anon PostgREST: 7 seeded appointment types, notifications/appointments tables
+  present, `public_mentors` full column set + visibility gating working, base
+  `mentors` locked). Every chunk is now live. Remaining ops task: configure mentor
+  availability + session duration/price in Admin → Appointments → Mentor Schedule
+  so the booking wizard has slots to offer.
 
 ---
 

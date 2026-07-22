@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notify } from "@/features/notifications/service";
 import { effectivePriceBDT } from "@/lib/format";
 
 /** Returns the admin's user id, or null if the caller is not an admin. */
@@ -144,6 +145,18 @@ export async function approvePayment(
     return { error: "Access was granted but the submission could not be finalized. Please retry." };
   }
 
+  // Tell the buyer their access is live (Chunk 9 navbar bell).
+  await notify([
+    {
+      user_id: sub.user_id,
+      role: "student",
+      type: "payment_approved",
+      title: "Payment verified — access granted",
+      body: "Your payment has been verified and your items are unlocked. Happy learning!",
+      payload: { order_id: sub.order_id, href: `/dashboard/orders/${sub.order_id}` },
+    },
+  ]);
+
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${submissionId}`);
   return {};
@@ -222,6 +235,20 @@ export async function rejectPayment(
     console.error("rejectPayment: order status update failed", orderErr);
     return { error: "Could not update the order. Please retry." };
   }
+
+  // Tell the buyer the verification failed and why (Chunk 9 navbar bell).
+  await notify([
+    {
+      user_id: sub.user_id,
+      role: "student",
+      type: "payment_rejected",
+      title: "Payment could not be verified",
+      body: note.trim()
+        ? `Reason: ${note.trim()} — please re-check and submit again, or contact support.`
+        : "Please re-check your bKash details and submit again, or contact support.",
+      payload: { order_id: sub.order_id, href: `/dashboard/orders/${sub.order_id}` },
+    },
+  ]);
 
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${submissionId}`);

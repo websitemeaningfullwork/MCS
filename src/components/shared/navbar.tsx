@@ -17,6 +17,7 @@ import {
 
 import { Logo } from "@/components/shared/logo";
 import { NavSearch } from "@/components/shared/nav-search";
+import { NotificationBell } from "@/components/shared/notification-bell";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LangToggle } from "@/components/shared/lang-toggle";
 import { useDict } from "@/components/shared/language-provider";
@@ -264,18 +265,24 @@ export function Navbar() {
 
           <ThemeToggle />
 
-          {/* Notifications */}
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            aria-label="Notifications"
-            className="hidden rounded-full sm:inline-flex"
-          >
-            <Link href={authed ? "/dashboard" : "/login"}>
-              <Bell className="size-5" />
-            </Link>
-          </Button>
+          {/* Notifications — live bell for signed-in users, login link otherwise */}
+          {authed ? (
+            <div className="hidden sm:block">
+              <NotificationBell />
+            </div>
+          ) : (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              aria-label="Notifications"
+              className="hidden rounded-full sm:inline-flex"
+            >
+              <Link href="/login">
+                <Bell className="size-5" />
+              </Link>
+            </Button>
+          )}
 
           {/* Auth-aware profile / login */}
           {authed ? (
