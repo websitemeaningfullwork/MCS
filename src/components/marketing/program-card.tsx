@@ -3,7 +3,14 @@ import Link from "next/link";
 import { Star, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { formatBDT, effectivePriceBDT, hasDiscount, levelLabel } from "@/lib/format";
+import { T } from "@/components/shared/t";
+import {
+  formatBDT,
+  effectivePriceBDT,
+  hasDiscount,
+  levelLabel,
+  levelLabelBn,
+} from "@/lib/format";
 import type { Tables } from "@/types/database.types";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +70,7 @@ export function ProgramCard({
         )}
         {program.is_bestseller ? (
           <Badge className="absolute left-3 top-3 bg-warning text-primary-foreground">
-            Bestseller
+            <T en="Bestseller" bn="বেস্টসেলার" />
           </Badge>
         ) : null}
       </div>
@@ -71,7 +78,9 @@ export function ProgramCard({
       {/* Body */}
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{levelLabel(program.level)}</span>
+          <span>
+            <T en={levelLabel(program.level)} bn={levelLabelBn(program.level)} />
+          </span>
           {rating > 0 ? (
             <>
               <span aria-hidden="true">·</span>
@@ -107,12 +116,14 @@ export function ProgramCard({
         ) : null}
 
         {mentorName ? (
-          <p className="mt-2 text-xs text-muted-foreground">with {mentorName}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <T en={`with ${mentorName}`} bn={`মেন্টর: ${mentorName}`} />
+          </p>
         ) : null}
 
         <div className="mt-auto flex items-baseline gap-2 pt-4">
           <span className="text-lg font-semibold text-foreground">
-            {formatBDT(price)}
+            {price > 0 ? formatBDT(price) : <T en="Free" bn="ফ্রি" />}
           </span>
           {showDiscount ? (
             <span className="text-sm text-muted-foreground line-through">

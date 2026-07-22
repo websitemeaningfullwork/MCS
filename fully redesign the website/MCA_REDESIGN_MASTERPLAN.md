@@ -713,6 +713,28 @@ is filled in for at least one mentor.
   `mentors` locked). Every chunk is now live. Remaining ops task: configure mentor
   availability + session duration/price in Admin → Appointments → Mentor Schedule
   so the booking wizard has slots to offer.
+- 2026-07-22 — **Bangla dub completed for the whole public surface** (user report:
+  "bangla isn't working in many places incl. homepage" — root cause: only
+  nav/footer/notifications were in the dict; all Server-Component copy was
+  hardcoded EN and the client-side toggle couldn't reach it). New pattern:
+  `Bi = {en, bn}` pairs + `localize()/localizeAny()` in `lib/i18n.ts` + tiny
+  client leaf `components/shared/t.tsx` (`<T en bn/>`) so statically rendered
+  pages stay static/ISR while copy switches instantly with the toggle
+  (`:lang(bn)` already renders Hind Siliguri). Bangla copy researched against
+  10 Minute School + Shikho (loanword register, আপনি form). Converted:
+  homepage (all sections incl. FEATURES/ASK_OPTIONS/STATS), constants
+  (NAV_CATEGORIES, WHY_MCA, TESTIMONIALS, ACHIEVEMENTS, MEGA_HIGHLIGHTS,
+  FOOTER_METRICS), navbar (mega menu, account menu), footer (links + metrics),
+  SectionHeading/EmptyState (ReactNode props), FilterBar (Bi placeholders),
+  Pagination, NavSearch, TestimonialCarousel (bilingual seeds), Achievements
+  Gallery, ContinueJourney, ProgramCard (+`levelLabelBn`), ResourceCard
+  (+`RESOURCE_KIND_LABELS_BI`), and pages: about, programs, mentors, resources,
+  live-classes, mock-tests, blog, community, contact. Verified: build clean
+  (homepage still ○ 5m ISR), tsc + eslint (0 errors) + vitest(36) clean, and all
+  10 public pages serve the BN payload (SSR probe). **Still EN-only:** auth
+  forms, dashboard/mentor/admin panels, checkout, appointment wizard, program/
+  mentor detail static labels, notification texts (server-generated) — extend
+  with the same `<T>`/`Bi` pattern if the client wants them dubbed too.
 
 ---
 

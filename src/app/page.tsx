@@ -31,7 +31,9 @@ import {
   type TestimonialItem,
 } from "@/components/marketing/testimonial-carousel";
 import { AchievementsGallery } from "@/components/marketing/achievements-gallery";
+import { T } from "@/components/shared/t";
 import { COMMUNITY, WHY_MCA } from "@/lib/constants";
+import type { Bi } from "@/lib/i18n";
 
 // Icon registry for the "Why MCA" pillars (WHY_MCA stores string keys).
 const PILLAR_ICONS: Record<string, LucideIcon> = {
@@ -44,69 +46,107 @@ const PILLAR_ICONS: Record<string, LucideIcon> = {
 // The public homepage renders only anon-readable content, so it is statically
 // prerendered and revalidated every 5 minutes (served from the CDN). Auth-aware
 // UI ("Continue Your Journey" + navbar) lives in client islands, so nothing on
-// the server path depends on the signed-in user.
+// the server path depends on the signed-in user. Copy is bilingual via the
+// tiny <T> client leaf — the page itself stays static.
 export const revalidate = 300;
 
 // --- Static homepage content -------------------------------------------------
 
-const FEATURES = [
+const FEATURES: readonly {
+  title: Bi;
+  description: Bi;
+  href: string;
+  icon: LucideIcon;
+  tint: string;
+}[] = [
   {
-    title: "Courses",
-    description: "Expert-designed courses to power your future.",
+    title: { en: "Courses", bn: "কোর্সসমূহ" },
+    description: {
+      en: "Expert-designed courses to power your future.",
+      bn: "আপনার ভবিষ্যৎ গড়ে তুলতে এক্সপার্টদের সাজানো কোর্স।",
+    },
     href: "/programs",
     icon: GraduationCap,
     tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   },
   {
-    title: "Expert Mentors",
-    description: "Learn from experienced professionals.",
+    title: { en: "Expert Mentors", bn: "অভিজ্ঞ মেন্টর" },
+    description: {
+      en: "Learn from experienced professionals.",
+      bn: "অভিজ্ঞ প্রফেশনালদের কাছ থেকে শিখুন।",
+    },
     href: "/mentors",
     icon: Users,
     tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
   {
-    title: "E-Books",
-    description: "Read. Learn. Grow anytime, anywhere.",
+    title: { en: "E-Books", bn: "ই-বুক" },
+    description: {
+      en: "Read. Learn. Grow anytime, anywhere.",
+      bn: "পড়ুন, শিখুন — যেকোনো সময়, যেকোনো জায়গা থেকে।",
+    },
     href: "/resources",
     icon: BookOpen,
     tint: "bg-amber-400/15 text-amber-500 dark:text-amber-400",
   },
   {
-    title: "Live Classes",
-    description: "Join interactive live sessions.",
+    title: { en: "Live Classes", bn: "লাইভ ক্লাস" },
+    description: {
+      en: "Join interactive live sessions.",
+      bn: "ইন্টারঅ্যাকটিভ লাইভ সেশনে যোগ দিন।",
+    },
     href: "/live-classes",
     icon: Video,
     tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
-    title: "Ask a Mentor",
-    description: "Get your answers from our experts.",
+    title: { en: "Ask a Mentor", bn: "মেন্টরকে প্রশ্ন করুন" },
+    description: {
+      en: "Get your answers from our experts.",
+      bn: "আমাদের এক্সপার্টদের কাছ থেকে উত্তর নিন।",
+    },
     href: "/dashboard/questions/new",
     icon: MessageCircleQuestion,
     tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
   },
 ] as const;
 
-const ASK_OPTIONS = [
+const ASK_OPTIONS: readonly {
+  title: Bi;
+  description: Bi;
+  href: string;
+  icon: LucideIcon;
+  tint: string;
+  ring: string;
+}[] = [
   {
-    title: "Ask with Text",
-    description: "Type your question and get a thoughtful written answer.",
+    title: { en: "Ask with Text", bn: "লিখে প্রশ্ন করুন" },
+    description: {
+      en: "Type your question and get a thoughtful written answer.",
+      bn: "আপনার প্রশ্ন লিখুন, মেন্টরের কাছ থেকে গুছিয়ে লেখা উত্তর পান।",
+    },
     href: "/dashboard/questions/new",
     icon: MessageSquareText,
     tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     ring: "hover:border-blue-500/40",
   },
   {
-    title: "Ask with Voice",
-    description: "Record your question and let a mentor guide you back.",
+    title: { en: "Ask with Voice", bn: "ভয়েসে প্রশ্ন করুন" },
+    description: {
+      en: "Record your question and let a mentor guide you back.",
+      bn: "প্রশ্ন রেকর্ড করে পাঠান, মেন্টর আপনাকে পথ দেখিয়ে দেবেন।",
+    },
     href: "/dashboard/questions/new",
     icon: Mic,
     tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     ring: "hover:border-violet-500/40",
   },
   {
-    title: "My Questions",
-    description: "Track your questions and revisit mentor answers.",
+    title: { en: "My Questions", bn: "আমার প্রশ্ন" },
+    description: {
+      en: "Track your questions and revisit mentor answers.",
+      bn: "আপনার প্রশ্নগুলো ট্র্যাক করুন, মেন্টরের উত্তর আবার দেখে নিন।",
+    },
     href: "/dashboard/questions",
     icon: ListChecks,
     tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
@@ -114,27 +154,32 @@ const ASK_OPTIONS = [
   },
 ] as const;
 
-const STATS = [
+const STATS: readonly {
+  label: Bi;
+  value: string;
+  icon: LucideIcon;
+  tint: string;
+}[] = [
   {
-    label: "Happy Students",
+    label: { en: "Happy Students", bn: "সন্তুষ্ট শিক্ষার্থী" },
     value: "5,000+",
     icon: Users,
     tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   },
   {
-    label: "E-Books",
+    label: { en: "E-Books", bn: "ই-বুক" },
     value: "120+",
     icon: BookOpen,
     tint: "bg-amber-400/15 text-amber-500 dark:text-amber-400",
   },
   {
-    label: "Success Rate",
+    label: { en: "Success Rate", bn: "সাফল্যের হার" },
     value: "94%",
     icon: TrendingUp,
     tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
-    label: "Questions Answered",
+    label: { en: "Questions Answered", bn: "উত্তর দেওয়া প্রশ্ন" },
     value: "25,000+",
     icon: MessageCircleQuestion,
     tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
@@ -170,7 +215,8 @@ export default async function HomePage() {
   const programs = programsRes.data ?? [];
   const mentorRows = mentorRowsRes.data ?? [];
 
-  // Real testimonials (fall back to seed copy when none are approved yet).
+  // Real testimonials (the carousel falls back to bilingual seed copy when
+  // none are approved yet).
   const testimonials: TestimonialItem[] = (reviewsRes.data ?? [])
     .filter((r) => (r.body ?? "").trim().length > 0)
     .map((r) => ({
@@ -237,14 +283,18 @@ export default async function HomePage() {
         <div className="relative mx-auto max-w-6xl px-4">
           <div className="max-w-xl pt-32 pb-24 lg:pt-40 lg:pb-40">
             <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-              Learn Today,
+              <T en="Learn Today," bn="আজ শিখুন," />
               <br />
-              <span className="text-gradient-blue">Lead Tomorrow.</span>
+              <span className="text-gradient-blue">
+                <T en="Lead Tomorrow." bn="আগামীর নেতৃত্ব দিন।" />
+              </span>
             </h1>
 
             <p className="mt-6 max-w-md text-lg text-muted-foreground">
-              Your trusted learning companion to grow, achieve, and make your
-              dreams a reality.
+              <T
+                en="Your trusted learning companion to grow, achieve, and make your dreams a reality."
+                bn="আপনার বিশ্বস্ত শেখার সঙ্গী — এগিয়ে যেতে, অর্জন করতে এবং স্বপ্নকে বাস্তবে রূপ দিতে।"
+              />
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -254,7 +304,7 @@ export default async function HomePage() {
                 className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg shadow-blue-600/25 transition-shadow hover:shadow-xl hover:shadow-blue-600/40"
               >
                 <Link href="/mentors">
-                  Find Your Mentor
+                  <T en="Find Your Mentor" bn="আপনার মেন্টর খুঁজুন" />
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -266,7 +316,7 @@ export default async function HomePage() {
               >
                 <Link href="/live-classes">
                   <Play className="size-4 fill-current" />
-                  Watch Overview
+                  <T en="Watch Overview" bn="ওভারভিউ দেখুন" />
                 </Link>
               </Button>
             </div>
@@ -295,7 +345,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
               {FEATURES.map((feature) => (
                 <Link
-                  key={feature.title}
+                  key={feature.title.en}
                   href={feature.href}
                   className="group flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-secondary/60"
                 >
@@ -305,10 +355,10 @@ export default async function HomePage() {
                     <feature.icon className="size-7" />
                   </span>
                   <span className="font-semibold text-foreground">
-                    {feature.title}
+                    <T {...feature.title} />
                   </span>
                   <span className="text-sm leading-snug text-muted-foreground">
-                    {feature.description}
+                    <T {...feature.description} />
                   </span>
                 </Link>
               ))}
@@ -325,28 +375,33 @@ export default async function HomePage() {
         <section className="pt-20">
           <Reveal>
             <SectionHeading
-              eyebrow="Why MCA"
-              title="Guidance, not just courses."
-              description="MCA is a mentorship-first platform. Every course, live class, e-book, and mock test exists to support a real relationship with a mentor who guides you toward a meaningful career."
+              eyebrow={<T en="Why MCA" bn="কেন MCA" />}
+              title={<T en="Guidance, not just courses." bn="শুধু কোর্স নয়, দিকনির্দেশনা।" />}
+              description={
+                <T
+                  en="MCA is a mentorship-first platform. Every course, live class, e-book, and mock test exists to support a real relationship with a mentor who guides you toward a meaningful career."
+                  bn="MCA একটি মেন্টরশিপ-ফার্স্ট প্ল্যাটফর্ম। প্রতিটি কোর্স, লাইভ ক্লাস, ই-বুক ও মক টেস্ট আছে একটাই লক্ষ্যে — একজন মেন্টরের সাথে আপনার সত্যিকারের সম্পর্ক গড়া, যিনি আপনাকে অর্থবহ ক্যারিয়ারের পথে এগিয়ে নেবেন।"
+                />
+              }
               href="/about"
-              linkLabel="Learn more"
+              linkLabel={<T en="Learn more" bn="আরও জানুন" />}
             />
           </Reveal>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {WHY_MCA.map((pillar, i) => {
               const Icon = PILLAR_ICONS[pillar.icon] ?? UserRound;
               return (
-                <Reveal key={pillar.title} delay={i * 0.05}>
+                <Reveal key={pillar.title.en} delay={i * 0.05}>
                   <div className="card-hover flex h-full flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-card">
                     <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                       <Icon className="size-6" />
                     </span>
                     <div>
                       <h3 className="font-semibold text-foreground">
-                        {pillar.title}
+                        <T {...pillar.title} />
                       </h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {pillar.description}
+                        <T {...pillar.description} />
                       </p>
                     </div>
                   </div>
@@ -363,9 +418,14 @@ export default async function HomePage() {
           <section className="pt-20">
             <Reveal>
               <SectionHeading
-                eyebrow="Featured"
-                title="Popular Programs"
-                description="Hand-picked programs students love right now."
+                eyebrow={<T en="Featured" bn="ফিচার্ড" />}
+                title={<T en="Popular Programs" bn="জনপ্রিয় প্রোগ্রাম" />}
+                description={
+                  <T
+                    en="Hand-picked programs students love right now."
+                    bn="শিক্ষার্থীদের এই মুহূর্তের পছন্দের বাছাই করা প্রোগ্রাম।"
+                  />
+                }
                 href="/programs"
               />
             </Reveal>
@@ -393,9 +453,14 @@ export default async function HomePage() {
           <section className="pt-20">
             <Reveal>
               <SectionHeading
-                eyebrow="The heart of MCA"
-                title="Meet Our Mentors"
-                description="Experienced professionals ready to guide you personally."
+                eyebrow={<T en="The heart of MCA" bn="MCA-র প্রাণ" />}
+                title={<T en="Meet Our Mentors" bn="আমাদের মেন্টরদের সাথে পরিচিত হোন" />}
+                description={
+                  <T
+                    en="Experienced professionals ready to guide you personally."
+                    bn="অভিজ্ঞ প্রফেশনালরা প্রস্তুত আপনাকে ব্যক্তিগতভাবে গাইড করতে।"
+                  />
+                }
                 href="/mentors"
               />
             </Reveal>
@@ -416,9 +481,14 @@ export default async function HomePage() {
           <Reveal>
             <SectionHeading
               align="center"
-              eyebrow="Loved by learners"
-              title="Student Success Stories"
-              description="Real words from students who found direction with a mentor by their side."
+              eyebrow={<T en="Loved by learners" bn="শিক্ষার্থীদের ভালোবাসায়" />}
+              title={<T en="Student Success Stories" bn="শিক্ষার্থীদের সাফল্যের গল্প" />}
+              description={
+                <T
+                  en="Real words from students who found direction with a mentor by their side."
+                  bn="মেন্টরকে পাশে পেয়ে পথ খুঁজে পাওয়া শিক্ষার্থীদের নিজেদের কথা।"
+                />
+              }
             />
           </Reveal>
           <Reveal className="mt-10">
@@ -432,9 +502,14 @@ export default async function HomePage() {
         <section className="pt-20">
           <Reveal>
             <SectionHeading
-              eyebrow="Keep going"
-              title="Continue Your Journey"
-              description="Pick up right where you left off."
+              eyebrow={<T en="Keep going" bn="এগিয়ে চলুন" />}
+              title={<T en="Continue Your Journey" bn="আপনার যাত্রা চালিয়ে যান" />}
+              description={
+                <T
+                  en="Pick up right where you left off."
+                  bn="যেখানে থেমেছিলেন, ঠিক সেখান থেকেই আবার শুরু করুন।"
+                />
+              }
             />
           </Reveal>
           <ContinueJourney />
@@ -447,14 +522,19 @@ export default async function HomePage() {
           <Reveal>
             <SectionHeading
               align="center"
-              eyebrow="Personal support"
-              title="Ask a Mentor"
-              description="Stuck on something? Reach a real mentor your way."
+              eyebrow={<T en="Personal support" bn="ব্যক্তিগত সাপোর্ট" />}
+              title={<T en="Ask a Mentor" bn="মেন্টরকে প্রশ্ন করুন" />}
+              description={
+                <T
+                  en="Stuck on something? Reach a real mentor your way."
+                  bn="কোথাও আটকে গেছেন? আপনার সুবিধামতো উপায়ে একজন সত্যিকারের মেন্টরের কাছে পৌঁছে যান।"
+                />
+              }
             />
           </Reveal>
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {ASK_OPTIONS.map((opt, i) => (
-              <Reveal key={opt.title} delay={i * 0.05}>
+              <Reveal key={opt.title.en} delay={i * 0.05}>
                 <Link
                   href={opt.href}
                   className={`card-hover flex h-full flex-col items-start gap-4 rounded-3xl border border-border bg-card p-6 shadow-card ${opt.ring}`}
@@ -466,14 +546,14 @@ export default async function HomePage() {
                   </span>
                   <div>
                     <h3 className="font-semibold text-foreground">
-                      {opt.title}
+                      <T {...opt.title} />
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {opt.description}
+                      <T {...opt.description} />
                     </p>
                   </div>
                   <span className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    Get started
+                    <T en="Get started" bn="শুরু করুন" />
                     <ArrowRight className="size-4" />
                   </span>
                 </Link>
@@ -490,10 +570,13 @@ export default async function HomePage() {
                   </span>
                   <div>
                     <p className="font-semibold text-foreground">
-                      Need a quick reply?
+                      <T en="Need a quick reply?" bn="দ্রুত উত্তর দরকার?" />
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Chat with our support team on WhatsApp.
+                      <T
+                        en="Chat with our support team on WhatsApp."
+                        bn="হোয়াটসঅ্যাপে আমাদের সাপোর্ট টিমের সাথে কথা বলুন।"
+                      />
                     </p>
                   </div>
                 </div>
@@ -506,7 +589,7 @@ export default async function HomePage() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open WhatsApp
+                    <T en="Open WhatsApp" bn="হোয়াটসঅ্যাপ খুলুন" />
                     <ArrowRight className="size-4" />
                   </a>
                 </Button>
@@ -521,11 +604,16 @@ export default async function HomePage() {
         <section className="pt-20">
           <Reveal>
             <SectionHeading
-              eyebrow="Winners' circle"
-              title="Where Our Students Are Now"
-              description="A snapshot of recent wins from across the MCA community."
+              eyebrow={<T en="Winners' circle" bn="বিজয়ীদের আসর" />}
+              title={<T en="Where Our Students Are Now" bn="আমাদের শিক্ষার্থীরা আজ কোথায়" />}
+              description={
+                <T
+                  en="A snapshot of recent wins from across the MCA community."
+                  bn="MCA কমিউনিটির সাম্প্রতিক সাফল্যের এক ঝলক।"
+                />
+              }
               href="/programs"
-              linkLabel="Start your journey"
+              linkLabel={<T en="Start your journey" bn="আপনার যাত্রা শুরু করুন" />}
             />
           </Reveal>
           <Reveal className="mt-10">
@@ -541,7 +629,7 @@ export default async function HomePage() {
             <div className="rounded-3xl border border-border bg-gradient-to-br from-blue-500/5 via-card to-sky-400/5 p-8 shadow-card sm:p-12">
               <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
                 {STATS.map((stat, i) => (
-                  <Reveal key={stat.label} delay={i * 0.05}>
+                  <Reveal key={stat.label.en} delay={i * 0.05}>
                     <div className="flex flex-col items-center text-center">
                       <span
                         className={`flex size-14 items-center justify-center rounded-2xl ${stat.tint}`}
@@ -552,7 +640,7 @@ export default async function HomePage() {
                         {stat.value}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {stat.label}
+                        <T {...stat.label} />
                       </p>
                     </div>
                   </Reveal>

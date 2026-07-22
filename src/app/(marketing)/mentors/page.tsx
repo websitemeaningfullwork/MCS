@@ -4,6 +4,7 @@ import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-c
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
 import { Pagination } from "@/components/marketing/pagination";
+import { T } from "@/components/shared/t";
 import { parsePage } from "@/lib/pagination";
 
 const PAGE_SIZE = 24;
@@ -45,8 +46,9 @@ export default async function MentorsPage({
   // Expertise options (unique across all mentors).
   const expertiseSet = new Set<string>();
   rows.forEach((m) => (m.expertise ?? []).forEach((e) => expertiseSet.add(e)));
+  const allExpertiseLabel = { en: "All expertise", bn: "সব এক্সপার্টাইজ" };
   const expertiseOptions = [
-    { value: "all", label: "All expertise" },
+    { value: "all", label: allExpertiseLabel },
     ...[...expertiseSet].sort().map((e) => ({ value: e, label: e })),
   ];
 
@@ -70,19 +72,21 @@ export default async function MentorsPage({
     <div className="mx-auto max-w-6xl px-4 py-14">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Meet our mentors
+          <T en="Meet our mentors" bn="আমাদের মেন্টরদের সাথে পরিচিত হোন" />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          The heart of MCA. Find a mentor who fits your goals and start learning
-          with real guidance.
+          <T
+            en="The heart of MCA. Find a mentor who fits your goals and start learning with real guidance."
+            bn="MCA-র প্রাণ। আপনার লক্ষ্যের সাথে মানানসই মেন্টর খুঁজে নিন, শেখা শুরু করুন সত্যিকারের দিকনির্দেশনায়।"
+          />
         </p>
       </header>
 
       <div className="mt-8">
         <FilterBar
-          searchPlaceholder="Search mentors…"
+          searchPlaceholder={{ en: "Search mentors…", bn: "মেন্টর খুঁজুন…" }}
           filters={[
-            { param: "expertise", placeholder: "All expertise", options: expertiseOptions },
+            { param: "expertise", placeholder: allExpertiseLabel, options: expertiseOptions },
           ]}
         />
       </div>
@@ -90,8 +94,13 @@ export default async function MentorsPage({
       {mentors.length === 0 ? (
         <div className="mt-8">
           <EmptyState
-            title="No mentors found"
-            description="Try a different search or expertise."
+            title={<T en="No mentors found" bn="কোনো মেন্টর পাওয়া যায়নি" />}
+            description={
+              <T
+                en="Try a different search or expertise."
+                bn="অন্য কোনো সার্চ বা এক্সপার্টাইজ দিয়ে চেষ্টা করুন।"
+              />
+            }
           />
         </div>
       ) : (

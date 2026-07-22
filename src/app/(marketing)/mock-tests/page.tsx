@@ -5,6 +5,7 @@ import { ClipboardList, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { T } from "@/components/shared/t";
 
 export const metadata: Metadata = {
   title: "Mock Tests",
@@ -22,17 +23,22 @@ export default async function MockTestsPage() {
     <div className="mx-auto max-w-5xl px-4 py-14">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Mock tests
+          <T en="Mock tests" bn="মক টেস্ট" />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Sharpen your skills with practice tests and see instant, detailed
-          results.
+          <T
+            en="Sharpen your skills with practice tests and see instant, detailed results."
+            bn="প্র্যাকটিস টেস্ট দিয়ে দক্ষতা ঝালিয়ে নিন, সাথে সাথেই বিস্তারিত ফলাফল দেখুন।"
+          />
         </p>
       </header>
 
       {!tests || tests.length === 0 ? (
         <div className="mt-8">
-          <EmptyState title="No tests yet" description="New mock tests are coming soon." />
+          <EmptyState
+            title={<T en="No tests yet" bn="এখনও কোনো টেস্ট নেই" />}
+            description={<T en="New mock tests are coming soon." bn="নতুন মক টেস্ট শিগগিরই আসছে।" />}
+          />
         </div>
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -46,7 +52,11 @@ export default async function MockTestsPage() {
                 <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <ClipboardList className="size-5" />
                 </span>
-                {test.is_free ? <Badge variant="secondary">Free</Badge> : null}
+                {test.is_free ? (
+                  <Badge variant="secondary">
+                    <T en="Free" bn="ফ্রি" />
+                  </Badge>
+                ) : null}
               </div>
               <h2 className="mt-4 font-semibold text-foreground">{test.title}</h2>
               <div className="mt-2 flex items-center gap-3 text-xs capitalize text-muted-foreground">
@@ -54,7 +64,10 @@ export default async function MockTestsPage() {
                 {test.duration_minutes ? (
                   <span className="inline-flex items-center gap-1">
                     <Clock className="size-3.5" />
-                    {test.duration_minutes} min
+                    <T
+                      en={`${test.duration_minutes} min`}
+                      bn={`${test.duration_minutes} মিনিট`}
+                    />
                   </span>
                 ) : null}
               </div>

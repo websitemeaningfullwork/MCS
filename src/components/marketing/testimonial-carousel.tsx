@@ -2,7 +2,9 @@
 
 import { Quote, Star } from "lucide-react";
 import { Carousel } from "@/components/marketing/carousel";
+import { useLanguage } from "@/components/shared/language-provider";
 import { TESTIMONIALS } from "@/lib/constants";
+import { localize } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type TestimonialItem = {
@@ -34,13 +36,28 @@ const AVATAR_TINTS = [
 /**
  * Student Success Stories carousel. Renders real approved course reviews when
  * `items` is provided (Chunk 5), falling back to the seed testimonials so the
- * homepage never looks empty before any reviews exist.
+ * homepage never looks empty before any reviews exist. Seed copy is bilingual
+ * and resolves to the active language; real review bodies render as written.
  */
 export function TestimonialCarousel({ items }: { items?: TestimonialItem[] }) {
-  const data: TestimonialItem[] = items && items.length ? items : [...TESTIMONIALS];
+  const { lang } = useLanguage();
+  const data: TestimonialItem[] =
+    items && items.length
+      ? items
+      : TESTIMONIALS.map((t) => ({
+          name: t.name,
+          rating: t.rating,
+          role: localize(lang, t.role),
+          quote: localize(lang, t.quote),
+        }));
 
   return (
-    <Carousel ariaLabel="Student success stories">
+    <Carousel
+      ariaLabel={localize(lang, {
+        en: "Student success stories",
+        bn: "শিক্ষার্থীদের সাফল্যের গল্প",
+      })}
+    >
       {data.map((t, i) => (
         <figure
           key={`${t.name}-${i}`}

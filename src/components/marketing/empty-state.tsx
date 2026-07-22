@@ -1,11 +1,13 @@
+import type { ReactNode } from "react";
 import { SearchX } from "lucide-react";
+import { T } from "@/components/shared/t";
 
 export function EmptyState({
-  title = "Nothing here yet",
-  description = "Try adjusting your search or filters.",
+  title = <T en="Nothing here yet" bn="এখনও কিছু নেই" />,
+  description = <T en="Try adjusting your search or filters." bn="সার্চ বা ফিল্টার বদলে আবার চেষ্টা করুন।" />,
 }: {
-  title?: string;
-  description?: string;
+  title?: ReactNode;
+  description?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">

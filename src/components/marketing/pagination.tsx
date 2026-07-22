@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { T } from "@/components/shared/t";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,7 +42,7 @@ export function Pagination({ page, totalPages }: { page: number; totalPages: num
         <ChevronLeft className="size-4" />
       </Link>
       <span className="px-2 text-sm text-muted-foreground" aria-current="page">
-        Page {page} of {totalPages}
+        <T en={`Page ${page} of ${totalPages}`} bn={`পৃষ্ঠা ${page} / ${totalPages}`} />
       </span>
       <Link
         href={href(page + 1)}

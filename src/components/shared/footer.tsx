@@ -4,8 +4,9 @@ import Link from "next/link";
 import type { SVGProps } from "react";
 
 import { Logo } from "@/components/shared/logo";
-import { useDict } from "@/components/shared/language-provider";
+import { useLanguage } from "@/components/shared/language-provider";
 import { FOOTER_METRICS, SITE } from "@/lib/constants";
+import { localize, type Bi } from "@/lib/i18n";
 
 /* Brand/social glyphs — lucide dropped brand icons, so we inline them. */
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
@@ -48,40 +49,52 @@ function InstagramIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-const columns = [
+const columns: {
+  key: "company" | "learn" | "resources" | "legal";
+  links: { href: string; label: Bi }[];
+}[] = [
   {
-    key: "company" as const,
+    key: "company",
     links: [
-      { href: "/about", label: "About" },
-      { href: "/mentors", label: "Mentors" },
-      { href: "/blog", label: "Blog" },
-      { href: "/contact", label: "Contact" },
+      { href: "/about", label: { en: "About", bn: "আমাদের সম্পর্কে" } },
+      { href: "/mentors", label: { en: "Mentors", bn: "মেন্টর" } },
+      { href: "/blog", label: { en: "Blog", bn: "ব্লগ" } },
+      { href: "/contact", label: { en: "Contact", bn: "যোগাযোগ" } },
     ],
   },
   {
-    key: "learn" as const,
+    key: "learn",
     links: [
-      { href: "/programs", label: "Programs" },
-      { href: "/live-classes", label: "Live Classes" },
-      { href: "/mock-tests", label: "Mock Tests" },
-      { href: "/community", label: "Community" },
+      { href: "/programs", label: { en: "Programs", bn: "প্রোগ্রাম" } },
+      { href: "/live-classes", label: { en: "Live Classes", bn: "লাইভ ক্লাস" } },
+      { href: "/mock-tests", label: { en: "Mock Tests", bn: "মক টেস্ট" } },
+      { href: "/community", label: { en: "Community", bn: "কমিউনিটি" } },
     ],
   },
   {
-    key: "resources" as const,
+    key: "resources",
     links: [
-      { href: "/resources", label: "E-books" },
-      { href: "/resources?kind=cv_template", label: "CV Templates" },
-      { href: "/resources?kind=roadmap", label: "Career Roadmaps" },
-      { href: "/resources?kind=interview", label: "Interview Prep" },
+      { href: "/resources", label: { en: "E-books", bn: "ই-বুক" } },
+      {
+        href: "/resources?kind=cv_template",
+        label: { en: "CV Templates", bn: "সিভি টেমপ্লেট" },
+      },
+      {
+        href: "/resources?kind=roadmap",
+        label: { en: "Career Roadmaps", bn: "ক্যারিয়ার রোডম্যাপ" },
+      },
+      {
+        href: "/resources?kind=interview",
+        label: { en: "Interview Prep", bn: "ইন্টারভিউ প্রস্তুতি" },
+      },
     ],
   },
   {
-    key: "legal" as const,
+    key: "legal",
     links: [
-      { href: "/terms", label: "Terms" },
-      { href: "/privacy", label: "Privacy" },
-      { href: "/refund", label: "Refund Policy" },
+      { href: "/terms", label: { en: "Terms", bn: "শর্তাবলী" } },
+      { href: "/privacy", label: { en: "Privacy", bn: "প্রাইভেসি পলিসি" } },
+      { href: "/refund", label: { en: "Refund Policy", bn: "রিফান্ড পলিসি" } },
     ],
   },
 ];
@@ -94,7 +107,7 @@ const socials = [
 ];
 
 export function Footer() {
-  const dict = useDict();
+  const { dict, lang } = useLanguage();
   const year = new Date().getFullYear();
 
   return (
@@ -103,11 +116,13 @@ export function Footer() {
         {/* Social-proof metric strip. */}
         <div className="grid grid-cols-2 gap-6 border-b border-border pb-10 sm:grid-cols-4">
           {FOOTER_METRICS.map((m) => (
-            <div key={m.label}>
+            <div key={m.label.en}>
               <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 {m.value}
               </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{m.label}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {localize(lang, m.label)}
+              </p>
             </div>
           ))}
         </div>
@@ -138,7 +153,7 @@ export function Footer() {
                       href={link.href}
                       className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      {link.label}
+                      {localize(lang, link.label)}
                     </Link>
                   </li>
                 ))}

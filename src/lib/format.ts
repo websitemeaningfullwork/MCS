@@ -34,6 +34,19 @@ export function levelLabel(level: string | null | undefined): string {
   return LEVEL_LABELS[level] ?? "All levels";
 }
 
+/** Bangla counterparts of the level labels (loanword register, matching BD ed-tech). */
+const LEVEL_LABELS_BN: Record<string, string> = {
+  beginner: "বিগিনার",
+  intermediate: "ইন্টারমিডিয়েট",
+  advanced: "অ্যাডভান্সড",
+  all_levels: "সব লেভেল",
+};
+
+export function levelLabelBn(level: string | null | undefined): string {
+  if (!level) return "সব লেভেল";
+  return LEVEL_LABELS_BN[level] ?? "সব লেভেল";
+}
+
 /** Compact relative time, e.g. "2 days ago", "1 week ago". */
 export function timeAgo(iso: string | null | undefined): string {
   if (!iso) return "";

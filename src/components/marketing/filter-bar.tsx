@@ -12,20 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLanguage } from "@/components/shared/language-provider";
+import { localizeAny, type Bi } from "@/lib/i18n";
 
 export type SelectFilter = {
   param: string;
-  placeholder: string;
-  options: { value: string; label: string }[];
+  placeholder: string | Bi;
+  /** Labels may be bilingual (static filters) or plain strings (DB content). */
+  options: { value: string; label: string | Bi }[];
 };
 
 export function FilterBar({
-  searchPlaceholder = "Search…",
+  searchPlaceholder = { en: "Search…", bn: "খুঁজুন…" },
   filters = [],
 }: {
-  searchPlaceholder?: string;
+  searchPlaceholder?: string | Bi;
   filters?: SelectFilter[];
 }) {
+  const { lang } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,9 +64,9 @@ export function FilterBar({
           type="search"
           value={q}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder}
+          placeholder={localizeAny(lang, searchPlaceholder)}
           className="pl-9"
-          aria-label="Search"
+          aria-label={localizeAny(lang, { en: "Search", bn: "খুঁজুন" })}
         />
       </div>
 
@@ -78,12 +82,12 @@ export function FilterBar({
           }
         >
           <SelectTrigger className="sm:w-56">
-            <SelectValue placeholder={filter.placeholder} />
+            <SelectValue placeholder={localizeAny(lang, filter.placeholder)} />
           </SelectTrigger>
           <SelectContent>
             {filter.options.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+                {localizeAny(lang, opt.label)}
               </SelectItem>
             ))}
           </SelectContent>

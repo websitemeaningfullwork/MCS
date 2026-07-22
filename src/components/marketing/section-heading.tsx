@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { T } from "@/components/shared/t";
 import { cn } from "@/lib/utils";
 
 export function SectionHeading({
@@ -7,15 +9,15 @@ export function SectionHeading({
   title,
   description,
   href,
-  linkLabel = "View all",
+  linkLabel = <T en="View all" bn="সব দেখুন" />,
   align = "left",
   className,
 }: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
   href?: string;
-  linkLabel?: string;
+  linkLabel?: ReactNode;
   align?: "left" | "center";
   className?: string;
 }) {

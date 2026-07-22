@@ -20,7 +20,7 @@ import { NavSearch } from "@/components/shared/nav-search";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LangToggle } from "@/components/shared/lang-toggle";
-import { useDict } from "@/components/shared/language-provider";
+import { useLanguage } from "@/components/shared/language-provider";
 import { CategoryIcon } from "@/components/marketing/category-icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,10 +42,11 @@ import {
 import { signOut } from "@/features/auth/actions";
 import { createClient } from "@/lib/supabase/browser";
 import { NAV_CATEGORIES, MEGA_HIGHLIGHTS } from "@/lib/constants";
+import { localize } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const dict = useDict();
+  const { dict, lang } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -170,7 +171,7 @@ export function Navbar() {
                 {/* Left panel — categories */}
                 <div className="p-4">
                   <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Categories
+                    {dict.nav.categories}
                   </p>
                   <div className="grid grid-cols-2 gap-1">
                     {NAV_CATEGORIES.map((cat) => (
@@ -182,7 +183,7 @@ export function Navbar() {
                           <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <CategoryIcon name={cat.icon} className="size-4" />
                           </span>
-                          <span className="text-sm">{cat.label}</span>
+                          <span className="text-sm">{localize(lang, cat.label)}</span>
                         </Link>
                       </DropdownMenuItem>
                     ))}
@@ -193,13 +194,13 @@ export function Navbar() {
                       href="/programs"
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      View all programs →
+                      {dict.nav.viewAllPrograms} →
                     </Link>
                     <Link
                       href="/mock-tests"
                       className="text-sm text-muted-foreground hover:text-foreground"
                     >
-                      Mock Tests
+                      {dict.nav.mockTests}
                     </Link>
                   </div>
                 </div>
@@ -207,19 +208,19 @@ export function Navbar() {
                 {/* Right panel — highlights + quick enroll */}
                 <div className="border-l border-border bg-secondary/40 p-4">
                   <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Highlights
+                    {dict.nav.highlights}
                   </p>
                   <div className="space-y-0.5">
                     {MEGA_HIGHLIGHTS.map((h) => (
-                      <DropdownMenuItem key={h.label} asChild>
+                      <DropdownMenuItem key={h.label.en} asChild>
                         <Link
                           href={h.href}
                           className="flex items-center justify-between"
                         >
-                          <span className="text-sm">{h.label}</span>
+                          <span className="text-sm">{localize(lang, h.label)}</span>
                           {h.badge ? (
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                              {h.badge}
+                              {localize(lang, h.badge)}
                             </span>
                           ) : null}
                         </Link>
@@ -227,15 +228,15 @@ export function Navbar() {
                     ))}
                   </div>
                   <div className="mt-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 p-3 text-white shadow-sm">
-                    <p className="text-sm font-semibold">New here?</p>
+                    <p className="text-sm font-semibold">{dict.nav.newHere}</p>
                     <p className="mt-0.5 text-xs text-white/85">
-                      Find a mentor and enroll in minutes.
+                      {dict.nav.newHereDesc}
                     </p>
                     <Link
                       href="/programs"
                       className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
                     >
-                      Quick enroll →
+                      {dict.nav.quickEnroll} →
                     </Link>
                   </div>
                 </div>
@@ -298,13 +299,13 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <DropdownMenuLabel>{dict.nav.myAccount}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {role === "admin" ? (
                   <DropdownMenuItem asChild>
                     <Link href="/admin">
                       <Shield className="size-4" />
-                      Admin Panel
+                      {dict.nav.adminPanel}
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -312,7 +313,7 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/mentor">
                       <UserRound className="size-4" />
-                      Mentor Panel
+                      {dict.nav.mentorPanel}
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -325,7 +326,7 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings">
                     <Settings className="size-4" />
-                    Settings
+                    {dict.nav.settings}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -336,7 +337,7 @@ export function Navbar() {
                       className="flex w-full items-center gap-2 text-left"
                     >
                       <LogOut className="size-4" />
-                      Sign out
+                      {dict.nav.signOut}
                     </button>
                   </form>
                 </DropdownMenuItem>

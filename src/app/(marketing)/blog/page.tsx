@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/marketing/empty-state";
 import { Pagination } from "@/components/marketing/pagination";
+import { T } from "@/components/shared/t";
 import { parsePage } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
@@ -44,11 +45,13 @@ export default async function BlogPage({
     <div className="mx-auto max-w-5xl px-4 py-14">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          The MCA Blog
+          <T en="The MCA Blog" bn="MCA ব্লগ" />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Guidance, strategies, and stories to help you build a meaningful
-          career.
+          <T
+            en="Guidance, strategies, and stories to help you build a meaningful career."
+            bn="অর্থবহ ক্যারিয়ার গড়তে দিকনির্দেশনা, কৌশল আর অভিজ্ঞতার গল্প।"
+          />
         </p>
       </header>
 
@@ -63,7 +66,7 @@ export default async function BlogPage({
                 : "border-border bg-card text-muted-foreground hover:text-foreground",
             )}
           >
-            All
+            <T en="All" bn="সব" />
           </Link>
           {tags.map((t) => (
             <Link
@@ -84,7 +87,12 @@ export default async function BlogPage({
 
       {posts.length === 0 ? (
         <div className="mt-8">
-          <EmptyState title="No posts yet" description="Check back soon for new articles." />
+          <EmptyState
+            title={<T en="No posts yet" bn="এখনও কোনো লেখা নেই" />}
+            description={
+              <T en="Check back soon for new articles." bn="নতুন লেখার জন্য শিগগিরই আবার দেখুন।" />
+            }
+          />
         </div>
       ) : (
         <>

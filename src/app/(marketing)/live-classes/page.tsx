@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { T } from "@/components/shared/t";
 import type { Tables } from "@/types/database.types";
 
 export const metadata: Metadata = {
@@ -42,11 +43,17 @@ function ClassCard({
         {url ? (
           <Button asChild size="sm" className="rounded-full">
             <a href={url} target="_blank" rel="noopener noreferrer">
-              {recorded ? "Watch replay" : "Join class"}
+              {recorded ? (
+                <T en="Watch replay" bn="রিপ্লে দেখুন" />
+              ) : (
+                <T en="Join class" bn="ক্লাসে যোগ দিন" />
+              )}
             </a>
           </Button>
         ) : (
-          <span className="text-xs text-muted-foreground">Link coming soon</span>
+          <span className="text-xs text-muted-foreground">
+            <T en="Link coming soon" bn="লিংক শিগগিরই আসছে" />
+          </span>
         )}
       </div>
     </div>
@@ -79,27 +86,39 @@ export default async function LiveClassesPage() {
       <header className="max-w-2xl">
         <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
           <Radio className="size-4" />
-          Live sessions
+          <T en="Live sessions" bn="লাইভ সেশন" />
         </span>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Live classes
+          <T en="Live classes" bn="লাইভ ক্লাস" />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Learn in real time with your mentors, then catch up on replays.
+          <T
+            en="Learn in real time with your mentors, then catch up on replays."
+            bn="মেন্টরদের সাথে রিয়েল-টাইমে শিখুন, মিস হলে রিপ্লে দেখে নিন।"
+          />
         </p>
       </header>
 
       <Tabs defaultValue="upcoming" className="mt-8">
         <TabsList>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="recorded">Recorded</TabsTrigger>
+          <TabsTrigger value="upcoming">
+            <T en="Upcoming" bn="আসন্ন" />
+          </TabsTrigger>
+          <TabsTrigger value="recorded">
+            <T en="Recorded" bn="রেকর্ডেড" />
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="mt-6">
           {upcoming.length === 0 ? (
             <EmptyState
-              title="No upcoming classes"
-              description="New live sessions will be scheduled soon."
+              title={<T en="No upcoming classes" bn="কোনো আসন্ন ক্লাস নেই" />}
+              description={
+                <T
+                  en="New live sessions will be scheduled soon."
+                  bn="নতুন লাইভ সেশন শিগগিরই শিডিউল করা হবে।"
+                />
+              }
             />
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -113,8 +132,13 @@ export default async function LiveClassesPage() {
         <TabsContent value="recorded" className="mt-6">
           {recorded.length === 0 ? (
             <EmptyState
-              title="No recordings yet"
-              description="Replays of past classes will appear here."
+              title={<T en="No recordings yet" bn="এখনও কোনো রেকর্ডিং নেই" />}
+              description={
+                <T
+                  en="Replays of past classes will appear here."
+                  bn="আগের ক্লাসগুলোর রিপ্লে এখানে পাওয়া যাবে।"
+                />
+              }
             />
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

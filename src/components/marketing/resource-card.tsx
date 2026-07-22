@@ -3,7 +3,9 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { T } from "@/components/shared/t";
 import { formatBDT } from "@/lib/format";
+import type { Bi } from "@/lib/i18n";
 import type { Tables } from "@/types/database.types";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +17,17 @@ export const RESOURCE_KIND_LABELS: Record<string, string> = {
   productivity: "Productivity",
   scholarship: "Scholarship",
   other: "Resource",
+};
+
+/** Bilingual kind labels (badge + filter options). */
+export const RESOURCE_KIND_LABELS_BI: Record<string, Bi> = {
+  ebook: { en: "E-book", bn: "ই-বুক" },
+  cv_template: { en: "CV Template", bn: "সিভি টেমপ্লেট" },
+  roadmap: { en: "Roadmap", bn: "রোডম্যাপ" },
+  interview: { en: "Interview Prep", bn: "ইন্টারভিউ প্রস্তুতি" },
+  productivity: { en: "Productivity", bn: "প্রোডাক্টিভিটি" },
+  scholarship: { en: "Scholarship", bn: "স্কলারশিপ" },
+  other: { en: "Resource", bn: "রিসোর্স" },
 };
 
 type ResourceCardData = Pick<
@@ -50,7 +63,7 @@ export function ResourceCard({
           <BookOpen className="size-10 text-primary/40" />
         )}
         <Badge variant="secondary" className="absolute left-3 top-3">
-          {RESOURCE_KIND_LABELS[resource.kind] ?? "Resource"}
+          <T {...(RESOURCE_KIND_LABELS_BI[resource.kind] ?? RESOURCE_KIND_LABELS_BI.other)} />
         </Badge>
       </div>
 
@@ -59,10 +72,16 @@ export function ResourceCard({
           {resource.title}
         </h3>
         {resource.author ? (
-          <p className="mt-1 text-xs text-muted-foreground">by {resource.author}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            <T en={`by ${resource.author}`} bn={`লেখক: ${resource.author}`} />
+          </p>
         ) : null}
         <span className="mt-auto pt-3 font-semibold text-foreground">
-          {formatBDT(resource.price_bdt)}
+          {resource.price_bdt && resource.price_bdt > 0 ? (
+            formatBDT(resource.price_bdt)
+          ) : (
+            <T en="Free" bn="ফ্রি" />
+          )}
         </span>
       </div>
     </Link>

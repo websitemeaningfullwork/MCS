@@ -8,6 +8,7 @@ import { ArrowRight, BookMarked, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/browser";
 import { Reveal } from "@/components/marketing/reveal";
+import { T } from "@/components/shared/t";
 
 type ContinueItem = {
   programId: string;
@@ -117,17 +118,18 @@ export function ContinueJourney() {
           </span>
           <div>
             <h3 className="text-lg font-semibold text-foreground">
-              Your journey starts here
+              <T en="Your journey starts here" bn="আপনার যাত্রা শুরু এখানেই" />
             </h3>
             <p className="mt-1 max-w-md text-sm text-muted-foreground">
-              You don&apos;t have an active course yet. Enroll in a program and
-              your progress will show up here so you can pick up right where you
-              left off.
+              <T
+                en="You don't have an active course yet. Enroll in a program and your progress will show up here so you can pick up right where you left off."
+                bn="আপনার এখনও কোনো চালু কোর্স নেই। একটি প্রোগ্রামে এনরোল করুন — আপনার অগ্রগতি এখানে দেখা যাবে, যাতে যেখানে থেমেছিলেন সেখান থেকেই আবার শুরু করতে পারেন।"
+              />
             </p>
           </div>
           <Button asChild size="lg" className="rounded-full">
             <Link href="/programs">
-              Explore Programs
+              <T en="Explore Programs" bn="প্রোগ্রাম দেখুন" />
               <ArrowRight className="size-4" />
             </Link>
           </Button>
@@ -156,13 +158,13 @@ export function ContinueJourney() {
                 </div>
               )}
               <span className="absolute left-3 top-3 rounded-full bg-success px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
-                {Math.round(item.progress)}% complete
+                {Math.round(item.progress)}% <T en="complete" bn="সম্পন্ন" />
               </span>
             </div>
 
             <div className="flex flex-1 flex-col p-5">
               <p className="text-xs font-medium text-muted-foreground">
-                Continue learning
+                <T en="Continue learning" bn="শেখা চালিয়ে যান" />
               </p>
               <h3 className="mt-1 line-clamp-2 font-semibold text-foreground">
                 {item.title}
@@ -182,7 +184,7 @@ export function ContinueJourney() {
               >
                 <Link href={`/dashboard/learn/${item.slug}`}>
                   <PlayCircle className="size-4" />
-                  Continue Lesson
+                  <T en="Continue Lesson" bn="লেসন চালিয়ে যান" />
                 </Link>
               </Button>
             </div>

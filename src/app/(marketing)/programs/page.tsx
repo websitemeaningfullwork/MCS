@@ -4,6 +4,7 @@ import { ProgramCard } from "@/components/marketing/program-card";
 import { FilterBar } from "@/components/marketing/filter-bar";
 import { EmptyState } from "@/components/marketing/empty-state";
 import { Pagination } from "@/components/marketing/pagination";
+import { T } from "@/components/shared/t";
 import { parsePage } from "@/lib/pagination";
 
 const PAGE_SIZE = 24;
@@ -55,8 +56,9 @@ export default async function ProgramsPage({
     : { data: [] };
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 
+  const allCategoriesLabel = { en: "All categories", bn: "সব ক্যাটাগরি" };
   const categoryOptions = [
-    { value: "all", label: "All categories" },
+    { value: "all", label: allCategoriesLabel },
     ...(categories ?? []).map((c) => ({ value: c.slug, label: c.name })),
   ];
 
@@ -64,19 +66,21 @@ export default async function ProgramsPage({
     <div className="mx-auto max-w-6xl px-4 py-14">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Learning programs
+          <T en="Learning programs" bn="লার্নিং প্রোগ্রাম" />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Mentor-led programs designed to take you from where you are to where
-          you want to be.
+          <T
+            en="Mentor-led programs designed to take you from where you are to where you want to be."
+            bn="মেন্টরের তত্ত্বাবধানে সাজানো প্রোগ্রাম — আপনি এখন যেখানে আছেন, সেখান থেকে লক্ষ্যে পৌঁছে দিতে।"
+          />
         </p>
       </header>
 
       <div className="mt-8">
         <FilterBar
-          searchPlaceholder="Search programs…"
+          searchPlaceholder={{ en: "Search programs…", bn: "প্রোগ্রাম খুঁজুন…" }}
           filters={[
-            { param: "category", placeholder: "All categories", options: categoryOptions },
+            { param: "category", placeholder: allCategoriesLabel, options: categoryOptions },
           ]}
         />
       </div>
@@ -84,8 +88,13 @@ export default async function ProgramsPage({
       {programs.length === 0 ? (
         <div className="mt-8">
           <EmptyState
-            title="No programs found"
-            description="Try a different search term or category."
+            title={<T en="No programs found" bn="কোনো প্রোগ্রাম পাওয়া যায়নি" />}
+            description={
+              <T
+                en="Try a different search term or category."
+                bn="অন্য কোনো সার্চ টার্ম বা ক্যাটাগরি দিয়ে চেষ্টা করুন।"
+              />
+            }
           />
         </div>
       ) : (

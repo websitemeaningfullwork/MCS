@@ -10,6 +10,28 @@ export type Lang = "en" | "bn";
 export const LANGS: Lang[] = ["en", "bn"];
 export const DEFAULT_LANG: Lang = "en";
 
+/**
+ * A bilingual string pair. Server-rendered copy (homepage sections, constants)
+ * stores both languages and the client picks one — either through the `<T>`
+ * leaf component (`components/shared/t.tsx`, for JSX text) or `localize()`
+ * (for attribute strings inside client components). This keeps statically
+ * rendered pages cacheable while still switching language instantly.
+ */
+export type Bi = { en: string; bn: string };
+
+/** Resolve a bilingual pair for the active language. */
+export function localize(lang: Lang, text: Bi): string {
+  return lang === "bn" ? text.bn : text.en;
+}
+
+/**
+ * Resolve a value that may be a plain string (e.g. user content from the DB,
+ * which is never machine-translated) or a bilingual pair.
+ */
+export function localizeAny(lang: Lang, text: string | Bi): string {
+  return typeof text === "string" ? text : localize(lang, text);
+}
+
 /** The dictionary shape — string values so EN and BN stay type-compatible. */
 export interface Dict {
   nav: {
@@ -27,6 +49,17 @@ export interface Dict {
     search: string;
     login: string;
     dashboard: string;
+    categories: string;
+    highlights: string;
+    viewAllPrograms: string;
+    newHere: string;
+    newHereDesc: string;
+    quickEnroll: string;
+    myAccount: string;
+    adminPanel: string;
+    mentorPanel: string;
+    settings: string;
+    signOut: string;
   };
   common: {
     findMentor: string;
@@ -70,6 +103,17 @@ export const dictionaries: Record<Lang, Dict> = {
       search: "Search",
       login: "Log in",
       dashboard: "Dashboard",
+      categories: "Categories",
+      highlights: "Highlights",
+      viewAllPrograms: "View all programs",
+      newHere: "New here?",
+      newHereDesc: "Find a mentor and enroll in minutes.",
+      quickEnroll: "Quick enroll",
+      myAccount: "My account",
+      adminPanel: "Admin Panel",
+      mentorPanel: "Mentor Panel",
+      settings: "Settings",
+      signOut: "Sign out",
     },
     common: {
       findMentor: "Find Your Mentor",
@@ -111,6 +155,17 @@ export const dictionaries: Record<Lang, Dict> = {
       search: "খুঁজুন",
       login: "লগ ইন",
       dashboard: "ড্যাশবোর্ড",
+      categories: "ক্যাটাগরি",
+      highlights: "হাইলাইটস",
+      viewAllPrograms: "সব প্রোগ্রাম দেখুন",
+      newHere: "নতুন এসেছেন?",
+      newHereDesc: "মেন্টর খুঁজে নিন, মিনিটেই এনরোল করুন।",
+      quickEnroll: "দ্রুত এনরোল",
+      myAccount: "আমার অ্যাকাউন্ট",
+      adminPanel: "অ্যাডমিন প্যানেল",
+      mentorPanel: "মেন্টর প্যানেল",
+      settings: "সেটিংস",
+      signOut: "সাইন আউট",
     },
     common: {
       findMentor: "আপনার মেন্টর খুঁজুন",

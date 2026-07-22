@@ -2,7 +2,9 @@
 
 import { Award } from "lucide-react";
 import { Carousel } from "@/components/marketing/carousel";
+import { useLanguage } from "@/components/shared/language-provider";
 import { ACHIEVEMENTS } from "@/lib/constants";
+import { localize } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function initials(name: string) {
@@ -15,8 +17,14 @@ function initials(name: string) {
 }
 
 export function AchievementsGallery() {
+  const { lang } = useLanguage();
   return (
-    <Carousel ariaLabel="Student achievements">
+    <Carousel
+      ariaLabel={localize(lang, {
+        en: "Student achievements",
+        bn: "শিক্ষার্থীদের অর্জন",
+      })}
+    >
       {ACHIEVEMENTS.map((a) => (
         <article
           key={a.name}
@@ -35,15 +43,17 @@ export function AchievementsGallery() {
             </span>
             <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm">
               <Award className="size-3.5 text-amber-500" />
-              Winner
+              {localize(lang, { en: "Winner", bn: "বিজয়ী" })}
             </span>
           </div>
 
           <div className="p-5">
             <h3 className="font-semibold text-foreground">{a.name}</h3>
-            <p className="mt-1 text-sm text-foreground/80">{a.achievement}</p>
+            <p className="mt-1 text-sm text-foreground/80">
+              {localize(lang, a.achievement)}
+            </p>
             <p className="mt-3 inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {a.program}
+              {localize(lang, a.program)}
             </p>
           </div>
         </article>
