@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Users } from "lucide-react";
+import { ArrowRight, Star, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { T } from "@/components/shared/t";
@@ -47,7 +47,7 @@ export function ProgramCard({
     <Link
       href={`/programs/${program.slug}`}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30",
+        "card-lift group flex flex-col overflow-hidden rounded-[20px] border border-border bg-card shadow-card hover:border-primary/30",
         className,
       )}
     >
@@ -131,6 +131,12 @@ export function ProgramCard({
             </span>
           ) : null}
         </div>
+
+        {/* Full-width gradient pill CTA with expanding-circle hover ripple. */}
+        <span className="btn-ripple mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_25px_rgba(37,99,235,0.3)] transition-all duration-300 group-hover:shadow-[0_12px_35px_rgba(37,99,235,0.4)]">
+          <T en="View Course" bn="কোর্স দেখুন" />
+          <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+        </span>
       </div>
     </Link>
   );

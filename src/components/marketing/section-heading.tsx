@@ -29,22 +29,29 @@ export function SectionHeading({
         className,
       )}
     >
-      <div className={cn(align === "center" && "mx-auto max-w-2xl")}>
+      <div className={cn(align === "center" && "mx-auto flex max-w-2xl flex-col items-center")}>
         {eyebrow ? (
-          <p className="text-sm font-medium text-primary">{eyebrow}</p>
+          <p className="inline-flex w-fit items-center rounded-full bg-gradient-to-r from-blue-600 to-sky-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white shadow-[0_5px_15px_rgba(37,99,235,0.25)]">
+            {eyebrow}
+          </p>
         ) : null}
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <h2
+          className={cn(
+            "title-underline mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl",
+            align === "center" && "title-underline-center",
+          )}
+        >
           {title}
         </h2>
         {description ? (
-          <p className="mt-2 max-w-2xl text-muted-foreground">{description}</p>
+          <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p>
         ) : null}
       </div>
 
       {href ? (
         <Link
           href={href}
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary transition-transform hover:translate-x-1 hover:underline"
         >
           {linkLabel}
           <ArrowRight className="size-4" />

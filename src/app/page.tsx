@@ -52,6 +52,28 @@ export const revalidate = 300;
 
 // --- Static homepage content -------------------------------------------------
 
+// Hero glass-panel bullets (staggered slide-in) and inline stats strip.
+const HERO_FEATURES: readonly { label: Bi; icon: LucideIcon }[] = [
+  {
+    label: { en: "1-on-1 guidance from expert mentors", bn: "অভিজ্ঞ মেন্টরদের ১-অন-১ গাইডেন্স" },
+    icon: Users,
+  },
+  {
+    label: { en: "Live classes & career-focused courses", bn: "লাইভ ক্লাস ও ক্যারিয়ারমুখী কোর্স" },
+    icon: Radio,
+  },
+  {
+    label: { en: "E-books, mock tests & roadmaps", bn: "ই-বুক, মক টেস্ট ও রোডম্যাপ" },
+    icon: BookOpen,
+  },
+] as const;
+
+const HERO_STATS: readonly { value: string; label: Bi }[] = [
+  { value: "5,000+", label: { en: "Students", bn: "শিক্ষার্থী" } },
+  { value: "120+", label: { en: "Programs", bn: "প্রোগ্রাম" } },
+  { value: "94%", label: { en: "Success Rate", bn: "সাফল্যের হার" } },
+] as const;
+
 const FEATURES: readonly {
   title: Bi;
   description: Bi;
@@ -253,55 +275,66 @@ export default async function HomePage() {
   return (
     <>
       {/* ===================================================================
-          1. HERO — full-bleed, floating navbar overlaps this section.
+          1. HERO — gogee8-style split: frosted glass panel (typing headline,
+          staggered feature bullets, ripple CTA) + 3D-tilted media card with
+          inline stats. Floating blurred blobs drift behind everything.
           =================================================================== */}
       <section className="hero-surface relative -mt-24 w-full overflow-hidden">
-        {/* Decorative soft glows */}
+        {/* Animated blurred blobs (hidden on small screens for performance) */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-24 top-10 size-72 rounded-full bg-blue-400/20 blur-3xl"
+          className="blur-shape -left-24 -top-24 hidden size-[400px] bg-gradient-to-br from-blue-600 to-sky-400 sm:block"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute right-1/3 top-1/2 size-72 rounded-full bg-sky-300/20 blur-3xl"
+          className="blur-shape -bottom-12 -right-12 hidden size-[300px] bg-gradient-to-br from-sky-400 to-blue-500 [animation-delay:10s] sm:block"
+        />
+        <div
+          aria-hidden
+          className="blur-shape left-1/2 top-1/2 size-[250px] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-blue-500 to-cyan-400 [animation-delay:5s]"
         />
 
-        {/* Full-bleed student image on the right (desktop) */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] lg:block">
-          <Image
-            src="/images/hero-mentor-student.webp"
-            alt="A student learning on a laptop with mentor guidance"
-            fill
-            priority
-            sizes="48vw"
-            className="object-cover object-center"
-          />
-          {/* Left fade so the photo melts into the hero surface */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
-        </div>
-
-        <div className="relative mx-auto max-w-6xl px-4">
-          <div className="max-w-xl pt-32 pb-24 lg:pt-40 lg:pb-40">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-20 pt-32 lg:grid-cols-2 lg:gap-14 lg:pb-28 lg:pt-40">
+          {/* Left — frosted glass content panel slides in from the left. */}
+          <div className="anim-slide-in-left glass-card rounded-[30px] p-7 text-center sm:p-10 lg:text-left">
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
               <T en="Learn Today," bn="আজ শিখুন," />
               <br />
-              <span className="text-gradient-blue">
+              <span className="typing-text text-gradient-blue pr-1">
                 <T en="Lead Tomorrow." bn="আগামীর নেতৃত্ব দিন।" />
               </span>
             </h1>
 
-            <p className="mt-6 max-w-md text-lg text-muted-foreground">
+            <p className="anim-fade-in-up mx-auto mt-5 max-w-md text-lg text-muted-foreground [animation-delay:0.5s] lg:mx-0">
               <T
                 en="Your trusted learning companion to grow, achieve, and make your dreams a reality."
                 bn="আপনার বিশ্বস্ত শেখার সঙ্গী — এগিয়ে যেতে, অর্জন করতে এবং স্বপ্নকে বাস্তবে রূপ দিতে।"
               />
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {/* Feature bullets slide in one after another. */}
+            <ul className="mt-7 space-y-4 text-left">
+              {HERO_FEATURES.map((f, i) => (
+                <li
+                  key={f.label.en}
+                  className="anim-slide-in-feature flex items-center gap-4"
+                  style={{ animationDelay: `${1 + i * 0.2}s` }}
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-[0_5px_15px_rgba(37,99,235,0.3)]">
+                    <f.icon className="size-5" />
+                  </span>
+                  <span className="font-medium text-foreground">
+                    <T {...f.label} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="anim-fade-in-up mt-8 flex flex-col justify-center gap-3 [animation-delay:1.8s] sm:flex-row lg:justify-start">
               <Button
                 asChild
                 size="lg"
-                className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg shadow-blue-600/25 transition-shadow hover:shadow-xl hover:shadow-blue-600/40"
+                className="btn-ripple rounded-full bg-gradient-to-r from-blue-600 to-sky-500 shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/40"
               >
                 <Link href="/mentors">
                   <T en="Find Your Mentor" bn="আপনার মেন্টর খুঁজুন" />
@@ -312,7 +345,7 @@ export default async function HomePage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="rounded-full bg-card/70 backdrop-blur"
+                className="rounded-full bg-card/70 backdrop-blur transition-transform duration-300 hover:-translate-y-1"
               >
                 <Link href="/live-classes">
                   <Play className="size-4 fill-current" />
@@ -322,16 +355,34 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Mobile hero image */}
-          <div className="relative -mt-8 mb-4 aspect-[4/3] overflow-hidden rounded-3xl shadow-card lg:hidden">
-            <Image
-              src="/images/hero-mentor-student.webp"
-              alt="A student learning on a laptop with mentor guidance"
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
+          {/* Right — 3D-tilted frosted media card that flattens on hover. */}
+          <div className="anim-slide-in-right">
+            <div className="tilt-3d glass-card rounded-[25px] p-4 sm:p-6">
+              <div className="relative aspect-video overflow-hidden rounded-[20px] shadow-[0_15px_40px_rgba(15,23,42,0.2)]">
+                <Image
+                  src="/images/hero-mentor-student.webp"
+                  alt="A student learning on a laptop with mentor guidance"
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+
+              {/* Inline stats strip inside the glass panel. */}
+              <div className="mt-5 flex justify-between gap-2 rounded-[20px] border border-white/20 bg-card/40 p-4 backdrop-blur-md sm:p-5 dark:border-white/10">
+                {HERO_STATS.map((s) => (
+                  <div key={s.label.en} className="min-w-0 text-center">
+                    <span className="block text-xl font-bold text-primary sm:text-2xl">
+                      {s.value}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground sm:text-sm">
+                      <T {...s.label} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -347,7 +398,7 @@ export default async function HomePage() {
                 <Link
                   key={feature.title.en}
                   href={feature.href}
-                  className="group flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-secondary/60"
+                  className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-transparent bg-secondary/40 p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card hover:shadow-[0_8px_20px_rgba(37,99,235,0.1)]"
                 >
                   <span
                     className={`flex size-14 items-center justify-center rounded-2xl ${feature.tint} transition-transform duration-300 group-hover:scale-110`}
@@ -626,7 +677,7 @@ export default async function HomePage() {
             ================================================================= */}
         <section className="py-20">
           <Reveal>
-            <div className="rounded-3xl border border-border bg-gradient-to-br from-blue-500/5 via-card to-sky-400/5 p-8 shadow-card sm:p-12">
+            <div className="rounded-[25px] border border-white/30 bg-gradient-to-br from-blue-600/10 via-card/60 to-sky-400/10 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 sm:p-12">
               <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
                 {STATS.map((stat, i) => (
                   <Reveal key={stat.label.en} delay={i * 0.05}>

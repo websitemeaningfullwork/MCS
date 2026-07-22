@@ -313,6 +313,292 @@
   }
 }
 
+/* ============================================================
+   gogee8-inspired motion & glass system (recolored premium-blue).
+   Every keyframe below mirrors the reference site's homepage
+   animations 1:1; colors are swapped to the MCA blue palette.
+   The global prefers-reduced-motion rule above disables them all.
+   ============================================================ */
+@layer utilities {
+  /* --- Frosted glass card (hero panel, testimonial cards, about) --- */
+  .glass-card {
+    background: color-mix(in oklab, var(--card) 55%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in oklab, #ffffff 45%, transparent);
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+  }
+  .dark .glass-card {
+    background: color-mix(in oklab, var(--card) 62%, transparent);
+    border-color: color-mix(in oklab, #ffffff 12%, transparent);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  /* --- Floating blurred blobs behind the hero --- */
+  .blur-shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    pointer-events: none;
+    animation: float-blur 20s ease-in-out infinite;
+  }
+
+  /* --- Entry animations (hero panels, features, CTAs) --- */
+  .anim-slide-in-left {
+    animation: slide-in-left 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-slide-in-right {
+    animation: slide-in-right 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+  }
+  .anim-fade-in-up {
+    animation: fade-in-up 1s ease-out both;
+  }
+  .anim-slide-in-feature {
+    animation: slide-in-feature 0.8s ease-out both;
+  }
+
+  /* --- Typewriter headline (caret types the accent line, then blinks) --- */
+  .typing-text {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: bottom;
+    border-right: 4px solid var(--primary);
+    animation:
+      typing 3.2s steps(28, end) 0.4s both,
+      blink-caret 1s step-end infinite;
+  }
+
+  /* --- Expanding-circle button ripple (gogee CTA hover) --- */
+  .btn-ripple {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .btn-ripple::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: var(--ripple, #1e40af);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition:
+      width 0.6s ease,
+      height 0.6s ease;
+    z-index: -1;
+  }
+  .btn-ripple:hover::before {
+    width: 420px;
+    height: 420px;
+  }
+
+  /* --- Section-title gradient underline that grows in --- */
+  .title-underline {
+    position: relative;
+    padding-bottom: 14px;
+  }
+  .title-underline::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #2563eb, #0ea5e9);
+    animation: underline-grow 1s ease-out 0.3s both;
+  }
+  .title-underline-center::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* --- 3D-tilted media panel that flattens on hover (hero right) --- */
+  @media (min-width: 1024px) {
+    .tilt-3d {
+      transform: perspective(1200px) rotateY(-8deg) rotateX(3deg);
+      transition: transform 0.5s ease;
+    }
+    .tilt-3d:hover {
+      transform: perspective(1200px) rotateY(0deg) rotateX(0deg);
+    }
+  }
+
+  /* --- Big card lift on hover (program / class cards) --- */
+  .card-lift {
+    transition:
+      transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+      box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+      border-color 0.3s ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
+  }
+  .dark .card-lift:hover {
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  /* --- Animated shimmer hairline (footer top edge) --- */
+  .shimmer-line {
+    background: linear-gradient(90deg, transparent, #2563eb, #0ea5e9, transparent);
+    animation: shimmer 4s ease-in-out infinite;
+  }
+
+  /* --- Diagonal shine sweep across social icons on hover --- */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine-sweep::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+  }
+  .shine-sweep:hover::before {
+    left: 100%;
+  }
+
+  /* --- Gentle infinite pulse (footer stat badge) --- */
+  .anim-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+
+  /* --- Pop-in for the scroll-to-top button --- */
+  .anim-bounce-in {
+    animation: bounce-in 0.6s ease both;
+  }
+
+  /* --- Slow float for decorative circles (testimonial section) --- */
+  .anim-floaty {
+    animation: floaty 8s ease-in-out infinite;
+  }
+}
+
+@keyframes float-blur {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(30px, 20px) scale(0.9);
+  }
+}
+@keyframes slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slide-in-feature {
+  0% {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+@keyframes blink-caret {
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--primary);
+  }
+}
+@keyframes underline-grow {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 80px;
+  }
+}
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
 /* Floating WhatsApp support button — gentle idle float (respects reduced motion).
    Applied on the fixed anchor, which positions via bottom/right (not transform),
    so the float and the inner button's hover-scale never fight over `transform`. */

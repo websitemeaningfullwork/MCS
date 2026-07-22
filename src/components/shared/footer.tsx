@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import type { SVGProps } from "react";
+import { useEffect, useState, type SVGProps } from "react";
+import { ArrowUp, Users } from "lucide-react";
 
 import { Logo } from "@/components/shared/logo";
 import { useLanguage } from "@/components/shared/language-provider";
 import { FOOTER_METRICS, SITE } from "@/lib/constants";
 import { localize, type Bi } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 /* Brand/social glyphs — lucide dropped brand icons, so we inline them. */
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
@@ -99,19 +101,70 @@ const columns: {
   },
 ];
 
+/* Brand-colored gradient chips (network identity colors, matching the
+   reference design); the rest of the footer stays on the blue theme. */
 const socials = [
-  { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
-  { href: "https://youtube.com", label: "YouTube", Icon: YoutubeIcon },
-  { href: "https://linkedin.com", label: "LinkedIn", Icon: LinkedinIcon },
-  { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
+  {
+    href: "https://facebook.com",
+    label: "Facebook",
+    Icon: FacebookIcon,
+    gradient: "bg-gradient-to-br from-[#2468a9] to-[#4267B2]",
+  },
+  {
+    href: "https://youtube.com",
+    label: "YouTube",
+    Icon: YoutubeIcon,
+    gradient: "bg-gradient-to-br from-[#e4194c] to-[#ff6b6b]",
+  },
+  {
+    href: "https://linkedin.com",
+    label: "LinkedIn",
+    Icon: LinkedinIcon,
+    gradient: "bg-gradient-to-br from-[#0077b5] to-[#00a0dc]",
+  },
+  {
+    href: "https://instagram.com",
+    label: "Instagram",
+    Icon: InstagramIcon,
+    gradient: "bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045]",
+  },
 ];
+
+/* Scroll-to-top FAB — appears after scrolling, pops in, sits above the
+   WhatsApp button so the two never overlap. */
+function ScrollTopButton() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <button
+      type="button"
+      aria-label="Scroll to top"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="anim-bounce-in fixed bottom-24 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-[0_6px_20px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-[0_10px_30px_rgba(37,99,235,0.4)] sm:bottom-28 sm:right-8"
+    >
+      <ArrowUp className="size-5" />
+    </button>
+  );
+}
 
 export function Footer() {
   const { dict, lang } = useLanguage();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="glass-footer mt-24">
+    <footer className="glass-footer relative mt-24 border-t-[3px] border-primary">
+      {/* Animated shimmer hairline along the top edge. */}
+      <div aria-hidden className="shimmer-line absolute inset-x-0 top-0 h-px" />
+      <ScrollTopButton />
       <div className="mx-auto max-w-6xl px-4 py-14">
         {/* Social-proof metric strip. */}
         <div className="grid grid-cols-2 gap-6 border-b border-border pb-10 sm:grid-cols-4">
@@ -142,8 +195,13 @@ export function Footer() {
           </div>
 
           {columns.map((col) => (
-            <nav key={col.key} aria-label={dict.footer[col.key]}>
-              <h2 className="text-sm font-semibold text-foreground">
+            <nav
+              key={col.key}
+              aria-label={dict.footer[col.key]}
+              className="group/col transition-transform duration-300 hover:-translate-y-1"
+            >
+              {/* Column heading with a gradient underline that grows on hover. */}
+              <h2 className="relative inline-block pb-2 text-sm font-bold uppercase tracking-wide text-foreground after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-8 after:rounded-full after:bg-gradient-to-r after:from-blue-600 after:to-sky-500 after:transition-all after:duration-300 group-hover/col:after:w-14">
                 {dict.footer[col.key]}
               </h2>
               <ul className="mt-3 space-y-2">
@@ -151,8 +209,12 @@ export function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="group/link relative inline-block py-0.5 text-sm text-muted-foreground transition-all duration-300 hover:translate-x-2 hover:font-medium hover:text-primary"
                     >
+                      <span
+                        aria-hidden
+                        className="absolute -left-3 top-1/2 h-0.5 w-0 -translate-y-1/2 rounded-full bg-primary transition-all duration-300 group-hover/link:w-2"
+                      />
                       {localize(lang, link.label)}
                     </Link>
                   </li>
@@ -162,21 +224,39 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <p className="text-sm text-muted-foreground">
-            © {year} MCA — Meaningful Career Academy. {dict.footer.rights}
-          </p>
-          <div className="flex items-center gap-1">
-            {socials.map(({ href, label, Icon }) => (
+        <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-border pt-6 sm:flex-row">
+          <div className="text-center sm:text-left">
+            <p className="text-sm text-muted-foreground">
+              © {year} MCA — Meaningful Career Academy. {dict.footer.rights}
+            </p>
+            {/* Pulsing community badge (reference-style stats pill). */}
+            <span className="anim-pulse-soft mt-3 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 px-4 py-1.5 text-xs font-semibold text-white shadow-[0_4px_15px_rgba(37,99,235,0.3)]">
+              <Users className="size-3.5" />
+              {FOOTER_METRICS[0].value} {localize(lang, FOOTER_METRICS[0].label)}
+            </span>
+          </div>
+
+          {/* Brand-gradient social chips with shine sweep + tooltip. */}
+          <div className="flex items-center gap-3">
+            {socials.map(({ href, label, Icon, gradient }) => (
               <a
                 key={label}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className={cn(
+                  "shine-sweep group/social relative flex size-11 items-center justify-center rounded-full text-white shadow-[0_4px_15px_rgba(15,23,42,0.15)] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-[0_8px_25px_rgba(15,23,42,0.25)]",
+                  gradient,
+                )}
               >
-                <Icon className="size-4" />
+                <Icon className="size-5" />
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute bottom-[130%] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-all duration-300 after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-slate-900 group-hover/social:bottom-[120%] group-hover/social:opacity-100"
+                >
+                  {label}
+                </span>
               </a>
             ))}
           </div>
