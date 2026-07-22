@@ -26,7 +26,10 @@ import { MentorCard, type MentorCardData } from "@/components/marketing/mentor-c
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { Reveal } from "@/components/marketing/reveal";
 import { ContinueJourney } from "@/components/marketing/continue-journey";
-import { TestimonialCarousel } from "@/components/marketing/testimonial-carousel";
+import {
+  TestimonialCarousel,
+  type TestimonialItem,
+} from "@/components/marketing/testimonial-carousel";
 import { AchievementsGallery } from "@/components/marketing/achievements-gallery";
 import { COMMUNITY, WHY_MCA } from "@/lib/constants";
 
@@ -141,7 +144,7 @@ const STATS = [
 export default async function HomePage() {
   const supabase = createPublicClient();
 
-  const [programsRes, mentorRowsRes] = await Promise.all([
+  const [programsRes, mentorRowsRes, reviewsRes] = await Promise.all([
     supabase
       .from("programs")
       .select("*")
@@ -153,10 +156,28 @@ export default async function HomePage() {
       .select("id, headline, expertise, rating, reviews_count, is_verified")
       .eq("is_featured", true)
       .limit(4),
+    // Approved course reviews with a written body → Student Success Stories.
+    supabase
+      .from("public_reviews")
+      .select("id, rating, body, reviewer_name, program_title, verified_buyer")
+      .eq("scope", "course")
+      .not("body", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(9),
   ]);
 
   const programs = programsRes.data ?? [];
   const mentorRows = mentorRowsRes.data ?? [];
+
+  // Real testimonials (fall back to seed copy when none are approved yet).
+  const testimonials: TestimonialItem[] = (reviewsRes.data ?? [])
+    .filter((r) => (r.body ?? "").trim().length > 0)
+    .map((r) => ({
+      name: r.reviewer_name ?? "MCA Student",
+      role: r.program_title ?? "MCA Student",
+      rating: r.rating,
+      quote: r.body ?? "",
+    }));
 
   // Resolve mentor display names/photos (public read of mentor profiles).
   const mentorIds = new Set<string>();
@@ -400,7 +421,7 @@ export default async function HomePage() {
             />
           </Reveal>
           <Reveal className="mt-10">
-            <TestimonialCarousel />
+            <TestimonialCarousel items={testimonials} />
           </Reveal>
         </section>
 

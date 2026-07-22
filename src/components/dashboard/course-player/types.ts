@@ -44,7 +44,18 @@ export type PlayerSeason = {
   lessons: PlayerLesson[];
 };
 
-export type PlayerTab = "overview" | "resources" | "qa" | "notes";
+export type PlayerTab = "overview" | "resources" | "qa" | "notes" | "reviews";
+
+/** A review the current student authored (any status) — for the composer state. */
+export type OwnReview = {
+  id: string;
+  scope: "lesson" | "season" | "course";
+  lesson_id: string | null;
+  module_id: string | null;
+  rating: number;
+  body: string | null;
+  status: string;
+};
 
 /** Format a duration in seconds as m:ss (or h:mm:ss). */
 export function formatDuration(seconds: number | null): string | null {

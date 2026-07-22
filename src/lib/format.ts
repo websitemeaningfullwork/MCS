@@ -33,3 +33,33 @@ export function levelLabel(level: string | null | undefined): string {
   if (!level) return "All levels";
   return LEVEL_LABELS[level] ?? "All levels";
 }
+
+/** Compact relative time, e.g. "2 days ago", "1 week ago". */
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const secs = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  const units: [number, string][] = [
+    [60, "second"],
+    [60, "minute"],
+    [24, "hour"],
+    [7, "day"],
+    [4.34524, "week"],
+    [12, "month"],
+    [Number.POSITIVE_INFINITY, "year"],
+  ];
+  let value = secs;
+  let unit = "second";
+  for (const [size, name] of units) {
+    if (value < size) {
+      unit = name;
+      break;
+    }
+    value = Math.floor(value / size);
+    unit = name;
+  }
+  if (unit === "second" && value < 45) return "just now";
+  const rounded = Math.max(1, value);
+  return `${rounded} ${unit}${rounded === 1 ? "" : "s"} ago`;
+}

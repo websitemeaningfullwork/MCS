@@ -11,6 +11,7 @@ const items: NavItem[] = [
   { href: "/dashboard/bookmarks", label: "Saved", icon: "bookmarks" },
   { href: "/dashboard/orders", label: "My Orders", icon: "orders" },
   { href: "/dashboard/questions", label: "Ask a Mentor", icon: "questions" },
+  { href: "/dashboard/reviews", label: "My Reviews", icon: "reviews" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 

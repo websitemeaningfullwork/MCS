@@ -15,6 +15,7 @@ import {
   CircleCheck,
   CircleX,
   Sparkles,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,7 +23,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/shared/markdown";
 import { cn } from "@/lib/utils";
+import { ReviewsTab } from "./reviews-tab";
+import type { PublicReview } from "@/components/reviews/types";
 import type {
+  OwnReview,
   PlayerLesson,
   PlayerQuestion,
   PlayerResource,
@@ -44,10 +48,21 @@ export function LessonTabs({
   lesson,
   tab,
   onTabChange,
+  reviews,
 }: {
   lesson: PlayerLesson;
   tab: PlayerTab;
   onTabChange: (tab: PlayerTab) => void;
+  reviews: {
+    programId: string;
+    currentModuleId: string;
+    lessonComplete: boolean;
+    seasonComplete: boolean;
+    courseComplete: boolean;
+    ownReviews: OwnReview[];
+    onOwnReviewsChange: (next: OwnReview[]) => void;
+    courseReviews: PublicReview[];
+  };
 }) {
   return (
     <Tabs
@@ -81,6 +96,10 @@ export function LessonTabs({
         <TabsTrigger value="notes">
           <StickyNote className="text-[#f59e0b]" />
           Notes
+        </TabsTrigger>
+        <TabsTrigger value="reviews">
+          <Star className="text-amber-500" />
+          Reviews
         </TabsTrigger>
       </TabsList>
 
@@ -137,6 +156,21 @@ export function LessonTabs({
         ) : (
           <EmptyState text="No notes for this lesson." />
         )}
+      </TabsContent>
+
+      {/* Reviews */}
+      <TabsContent value="reviews">
+        <ReviewsTab
+          programId={reviews.programId}
+          currentLessonId={lesson.id}
+          currentModuleId={reviews.currentModuleId}
+          lessonComplete={reviews.lessonComplete}
+          seasonComplete={reviews.seasonComplete}
+          courseComplete={reviews.courseComplete}
+          ownReviews={reviews.ownReviews}
+          onOwnReviewsChange={reviews.onOwnReviewsChange}
+          courseReviews={reviews.courseReviews}
+        />
       </TabsContent>
     </Tabs>
   );

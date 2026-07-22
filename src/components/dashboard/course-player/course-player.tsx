@@ -18,7 +18,8 @@ import { setLessonCompletion } from "@/features/learning/actions";
 import { CurriculumSidebar } from "./curriculum-sidebar";
 import { YouTubeEmbed } from "./youtube-embed";
 import { LessonTabs } from "./lesson-tabs";
-import type { PlayerLesson, PlayerSeason, PlayerTab } from "./types";
+import type { OwnReview, PlayerLesson, PlayerSeason, PlayerTab } from "./types";
+import type { PublicReview } from "@/components/reviews/types";
 
 type FlatLesson = { lesson: PlayerLesson; seasonIndex: number; lessonIndex: number; seasonTitle: string };
 
@@ -29,6 +30,8 @@ export function CoursePlayer({
   initialLessonId,
   askMentorHref,
   isAdminPreview,
+  initialOwnReviews,
+  courseReviews,
 }: {
   program: { id: string; title: string; slug: string };
   seasons: PlayerSeason[];
@@ -36,6 +39,8 @@ export function CoursePlayer({
   initialLessonId: string | null;
   askMentorHref: string;
   isAdminPreview: boolean;
+  initialOwnReviews: OwnReview[];
+  courseReviews: PublicReview[];
 }) {
   const flat = useMemo<FlatLesson[]>(() => {
     const out: FlatLesson[] = [];
@@ -50,6 +55,7 @@ export function CoursePlayer({
   const totalLessons = flat.length;
 
   const [completed, setCompleted] = useState<Set<string>>(new Set(initialCompleted));
+  const [ownReviews, setOwnReviews] = useState<OwnReview[]>(initialOwnReviews);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialLessonId && flat.some((f) => f.lesson.id === initialLessonId)
       ? initialLessonId
@@ -63,7 +69,12 @@ export function CoursePlayer({
   const prev = currentIdx > 0 ? flat[currentIdx - 1] : null;
   const next = currentIdx >= 0 && currentIdx < flat.length - 1 ? flat[currentIdx + 1] : null;
   const isDone = current ? completed.has(current.lesson.id) : false;
-  const lessonsInSeason = current ? seasons[current.seasonIndex].lessons.length : 0;
+  const currentSeason = current ? seasons[current.seasonIndex] : null;
+  const lessonsInSeason = currentSeason ? currentSeason.lessons.length : 0;
+  const seasonComplete = Boolean(
+    currentSeason && lessonsInSeason > 0 && currentSeason.lessons.every((l) => completed.has(l.id)),
+  );
+  const courseComplete = totalLessons > 0 && flat.every((f) => completed.has(f.lesson.id));
 
   function selectLesson(id: string) {
     setSelectedId(id);
@@ -232,7 +243,21 @@ export function CoursePlayer({
         </div>
 
         {/* Tabs */}
-        <LessonTabs lesson={current.lesson} tab={tab} onTabChange={setTab} />
+        <LessonTabs
+          lesson={current.lesson}
+          tab={tab}
+          onTabChange={setTab}
+          reviews={{
+            programId: program.id,
+            currentModuleId: currentSeason?.id ?? "",
+            lessonComplete: isDone,
+            seasonComplete,
+            courseComplete,
+            ownReviews,
+            onOwnReviewsChange: setOwnReviews,
+            courseReviews,
+          }}
+        />
       </div>
     </div>
   );

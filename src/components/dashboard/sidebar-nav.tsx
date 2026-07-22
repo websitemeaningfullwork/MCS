@@ -14,6 +14,7 @@ import {
   Radio,
   Receipt,
   Settings,
+  Star,
   UserRound,
   Users,
   type LucideIcon,
@@ -38,6 +39,7 @@ const ICONS: Record<string, LucideIcon> = {
   live: Radio,
   tests: ClipboardList,
   profile: UserRound,
+  reviews: Star,
 };
 
 export type NavItem = {

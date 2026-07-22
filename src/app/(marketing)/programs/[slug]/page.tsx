@@ -21,6 +21,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { BookmarkButton } from "@/components/shared/bookmark-button";
+import { RatingSummary } from "@/components/reviews/rating-summary";
+import { ReviewCard } from "@/components/reviews/review-card";
+import { summarize, type PublicReview } from "@/components/reviews/types";
 import { formatBDT, effectivePriceBDT, hasDiscount, levelLabel } from "@/lib/format";
 
 async function getProgram(slug: string) {
@@ -112,6 +115,25 @@ export default async function ProgramDetailPage({
   const lessons = lessonsData ?? [];
   const totalLessons = lessons.length;
 
+  // Approved course reviews for the Reviews tab + social proof.
+  const { data: reviewRows } = await supabase
+    .from("public_reviews")
+    .select("id, rating, body, created_at, reviewer_name, reviewer_avatar, verified_buyer")
+    .eq("program_id", program.id)
+    .eq("scope", "course")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const reviews: PublicReview[] = (reviewRows ?? []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    body: r.body,
+    created_at: r.created_at,
+    reviewer_name: r.reviewer_name,
+    reviewer_avatar: r.reviewer_avatar,
+    verified_buyer: r.verified_buyer,
+  }));
+  const reviewSummary = summarize(reviews);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -188,6 +210,9 @@ export default async function ProgramDetailPage({
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
               <TabsTrigger value="mentor">Mentor</TabsTrigger>
+              <TabsTrigger value="reviews">
+                Reviews{reviewSummary.count ? ` (${reviewSummary.count})` : ""}
+              </TabsTrigger>
               <TabsTrigger value="faq">FAQ</TabsTrigger>
             </TabsList>
 
@@ -305,6 +330,26 @@ export default async function ProgramDetailPage({
               ) : (
                 <p className="text-sm text-muted-foreground">
                   A mentor will be assigned to this program soon.
+                </p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="reviews" className="mt-6 space-y-6">
+              {reviewSummary.count > 0 ? (
+                <>
+                  <div className="rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">
+                    <RatingSummary summary={reviewSummary} />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {reviews.map((r) => (
+                      <ReviewCard key={r.id} review={r} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                  No reviews yet. Enrol and complete the course to be the first to
+                  share your experience.
                 </p>
               )}
             </TabsContent>

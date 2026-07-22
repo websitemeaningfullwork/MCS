@@ -5,6 +5,14 @@ import { Carousel } from "@/components/marketing/carousel";
 import { TESTIMONIALS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
+export type TestimonialItem = {
+  name: string;
+  role: string;
+  rating: number;
+  quote: string;
+  avatar?: string | null;
+};
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -23,12 +31,19 @@ const AVATAR_TINTS = [
   "bg-orange-500/10 text-orange-600 dark:text-orange-400",
 ];
 
-export function TestimonialCarousel() {
+/**
+ * Student Success Stories carousel. Renders real approved course reviews when
+ * `items` is provided (Chunk 5), falling back to the seed testimonials so the
+ * homepage never looks empty before any reviews exist.
+ */
+export function TestimonialCarousel({ items }: { items?: TestimonialItem[] }) {
+  const data: TestimonialItem[] = items && items.length ? items : [...TESTIMONIALS];
+
   return (
     <Carousel ariaLabel="Student success stories">
-      {TESTIMONIALS.map((t, i) => (
+      {data.map((t, i) => (
         <figure
-          key={t.name}
+          key={`${t.name}-${i}`}
           className="flex w-[85%] shrink-0 snap-start flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-card sm:w-[360px]"
         >
           <div className="flex items-center justify-between">
@@ -53,14 +68,25 @@ export function TestimonialCarousel() {
           </blockquote>
 
           <figcaption className="flex items-center gap-3 border-t border-border pt-4">
-            <span
-              className={cn(
-                "flex size-11 items-center justify-center rounded-full text-sm font-semibold",
-                AVATAR_TINTS[i % AVATAR_TINTS.length],
-              )}
-            >
-              {initials(t.name)}
-            </span>
+            {t.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- avatar host is arbitrary (OAuth), skip next/image domain allowlist
+              <img
+                src={t.avatar}
+                alt={t.name}
+                width={44}
+                height={44}
+                className="size-11 rounded-full object-cover"
+              />
+            ) : (
+              <span
+                className={cn(
+                  "flex size-11 items-center justify-center rounded-full text-sm font-semibold",
+                  AVATAR_TINTS[i % AVATAR_TINTS.length],
+                )}
+              >
+                {initials(t.name)}
+              </span>
+            )}
             <span className="min-w-0">
               <span className="block font-semibold text-foreground">{t.name}</span>
               <span className="block truncate text-sm text-muted-foreground">

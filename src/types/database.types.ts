@@ -403,6 +403,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          program_id: string;
+          scope: string;
+          lesson_id: string | null;
+          module_id: string | null;
+          rating: number;
+          body: string | null;
+          status: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          program_id: string;
+          scope?: string;
+          lesson_id?: string | null;
+          module_id?: string | null;
+          rating: number;
+          body?: string | null;
+          status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          program_id?: string;
+          scope?: string;
+          lesson_id?: string | null;
+          module_id?: string | null;
+          rating?: number;
+          body?: string | null;
+          status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       enrollments: {
         Row: {
           id: string;
@@ -1052,6 +1094,24 @@ export type Database = {
           options: Json;
           marks: number | null;
           sort_order: number | null;
+        };
+        Relationships: [];
+      };
+      public_reviews: {
+        Row: {
+          id: string;
+          program_id: string;
+          scope: string;
+          lesson_id: string | null;
+          module_id: string | null;
+          rating: number;
+          body: string | null;
+          created_at: string | null;
+          reviewer_name: string | null;
+          reviewer_avatar: string | null;
+          program_title: string;
+          program_slug: string;
+          verified_buyer: boolean;
         };
         Relationships: [];
       };

@@ -4,10 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CoursePlayer } from "@/components/dashboard/course-player/course-player";
 import type {
+  OwnReview,
   PlayerQuestion,
   PlayerResource,
   PlayerSeason,
 } from "@/components/dashboard/course-player/types";
+import type { PublicReview } from "@/components/reviews/types";
 
 export const metadata: Metadata = { title: "Learn" };
 
@@ -105,6 +107,46 @@ export default async function LearnPage({
     .filter((p) => p.is_completed)
     .map((p) => p.lesson_id);
 
+  // Reviews — the student's own (any status) + approved course reviews for the
+  // public rating summary / list in the Reviews tab.
+  const [{ data: ownReviewRows }, { data: publicReviewRows }] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select("id, scope, lesson_id, module_id, rating, body, status")
+      .eq("user_id", user.id)
+      .eq("program_id", program.id),
+    supabase
+      .from("public_reviews")
+      .select(
+        "id, rating, body, created_at, reviewer_name, reviewer_avatar, verified_buyer, scope",
+      )
+      .eq("program_id", program.id)
+      .eq("scope", "course")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  const ownReviews: OwnReview[] = (ownReviewRows ?? []).map((r) => ({
+    id: r.id,
+    scope: r.scope as OwnReview["scope"],
+    lesson_id: r.lesson_id,
+    module_id: r.module_id,
+    rating: r.rating,
+    body: r.body,
+    status: r.status,
+  }));
+
+  const courseReviews: PublicReview[] = (publicReviewRows ?? []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    body: r.body,
+    created_at: r.created_at,
+    reviewer_name: r.reviewer_name,
+    reviewer_avatar: r.reviewer_avatar,
+    verified_buyer: r.verified_buyer,
+    scope: r.scope,
+  }));
+
   // --- assemble ------------------------------------------------------------
   const resourcesByLesson = new Map<string, PlayerResource[]>();
   for (const r of resourceRows ?? []) {
@@ -165,6 +207,8 @@ export default async function LearnPage({
       initialLessonId={lessonParam ?? null}
       askMentorHref={`/dashboard/questions/new?program=${program.id}`}
       isAdminPreview={!enrollment && isAdmin}
+      initialOwnReviews={ownReviews}
+      courseReviews={courseReviews}
     />
   );
 }

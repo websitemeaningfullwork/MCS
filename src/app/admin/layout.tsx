@@ -14,6 +14,7 @@ const items: NavItem[] = [
   { href: "/admin/resources", label: "Resources", icon: "resources" },
   { href: "/admin/blog", label: "Blog", icon: "blog" },
   { href: "/admin/questions", label: "Questions", icon: "questions" },
+  { href: "/admin/reviews", label: "Reviews", icon: "reviews" },
   { href: "/admin/live-classes", label: "Live Classes", icon: "live" },
   { href: "/admin/mock-tests", label: "Mock Tests", icon: "tests" },
   { href: "/admin/settings", label: "Settings", icon: "settings" },
