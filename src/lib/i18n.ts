@@ -18,6 +18,7 @@ export interface Dict {
     mentors: string;
     ebooks: string;
     liveClasses: string;
+    appointments: string;
     mockTests: string;
     community: string;
     blog: string;
@@ -54,6 +55,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mentors: "Mentors",
       ebooks: "E-books",
       liveClasses: "Live Classes",
+      appointments: "Appointments",
       mockTests: "Mock Tests",
       community: "Community",
       blog: "Blog",
@@ -88,6 +90,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mentors: "মেন্টর",
       ebooks: "ই-বুক",
       liveClasses: "লাইভ ক্লাস",
+      appointments: "অ্যাপয়েন্টমেন্ট",
       mockTests: "মক টেস্ট",
       community: "কমিউনিটি",
       blog: "ব্লগ",

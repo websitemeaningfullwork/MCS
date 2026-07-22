@@ -553,18 +553,20 @@ green used only for status across the whole app.
 | 4 | Student course player | ✅ Done (build + SSR-compile + dev smoke; enrolled-student drive not run — no test login) | Rebuilt `dashboard/learn/[programSlug]/page.tsx` to load the Chunk-3 tree (seasons→published classes + resources + quiz + notes) and render `components/dashboard/course-player/*`: `course-player.tsx` (orchestrator: client lesson state, optimistic mark-complete → `setLessonCompletion`, prev/next, auto-advance), `curriculum-sidebar.tsx` (collapsible seasons, % per season, green checks/current/empty, Course Resources shortcut), `youtube-embed.tsx` (nocookie, rel=0, inline), `lesson-tabs.tsx` (Overview/Resources/Q&A/Notes + interactive self-check quiz), `types.ts`. Students see published classes only; admins get an "Admin preview" badge and see all. Immersive full-width: added `dashboard-shell.tsx` (client) so `/dashboard/learn/*` opts out of the dashboard sidebar/max-w-6xl chrome; `dashboard/layout.tsx` delegates to it. Added `setLessonCompletion(lessonId, programId, completed)` toggle in `features/learning/actions.ts` (markLessonComplete now delegates). Reviews tab deferred to Chunk 5 (course.jpg shows 4 tabs). Old `mark-complete-button.tsx` now orphaned (harmless). Build + tsc + eslint + 29 tests pass; dev server: `/dashboard/learn/*` and `/dashboard` gate to login, `/programs` 200, no runtime errors. |
 | 5 | Review system + moderation + social proof | ◐ Code-complete — **needs migration 011 applied to Supabase** | Build + tsc + eslint + 29 tests pass; dev smoke: public 200, protected 307→login, no runtime errors, degrades gracefully pre-migration. Files: migration `011_reviews.sql` (`reviews` table lesson/season/course scope + partial-unique-per-target, status guard + updated_at triggers, RLS, `public_reviews` view joined to reviewer+program w/ verified_buyer), types updated (`reviews` table + `public_reviews` view), `features/reviews/{schema,actions}.ts` (completion-gated submit via find-then-update/insert — NOT upsert, partial indexes can't be inferred; own edit/delete; admin approve/hide/report/delete; aggregate recompute for programs + mentors via service role). Shared `components/reviews/*` (stars, star-input, review-card, rating-summary, types+summarize). Course player: Reviews tab (`reviews-tab.tsx`) + 3 unlock composers (`review-composer.tsx` lesson/season/course) wired through `lesson-tabs.tsx` + `course-player.tsx`; learn page fetches ownReviews + approved course reviews. Program detail page: Reviews tab (summary + cards). Homepage: `TestimonialCarousel` now data-driven from approved course reviews (seed fallback). Admin `/admin/reviews` (filters program/rating/status + search + CSV export + approve/hide/delete via `reviews-table.tsx`). Dashboard `/dashboard/reviews` My Reviews (edit→pending, delete via `my-reviews.tsx`). Nav: admin + dashboard "Reviews" items, `reviews`→Star icon. Green kept status-only; ratings use amber. |
 | 6 | Mentor management (admin redesign) | ◐ Code-complete — **needs migration 012 applied to Supabase** | Build + tsc + eslint + 29 tests pass; dev smoke: `/mentors` 200, admin gated 307→login, degrades gracefully pre-migration. Files: migration `012_mentor_management.sql` (mentors + phone/email/show_* toggles/highest_qualification/current_position/organization/availability jsonb/session_duration(min)/session_price_bdt/currency/facebook_url/youtube_url/is_active/sort_order/status; extended `protect_mentors_columns` guard to also lock is_active/status/sort_order; **LOCKED base `mentors` to own-or-admin** and added visibility-gated `public_mentors` view (contact nulled unless show_*, only active mentors); `avatars: admin write` storage policy). Types updated (mentors columns + public_mentors view). `features/admin/mentor-schema.ts` (zod + WEEKDAYS/SESSION_DURATIONS/availability), rewrote `saveMentor`. Rebuilt `admin/mentors/[id]/edit` + `components/admin/mentor-form.tsx` as the single-page editor matching `mentors.jpg` (profile photo upload/remove → avatars bucket, Basic, Contact+Visibility toggles, Expertise/Skills tag inputs via new `tag-input.tsx`, Professional, Availability days/hours/breaks, Session&Pricing, Social, Featured/Verified/Active/Sort/Status). New `components/shared/social-icons.tsx` (lucide dropped brand icons). **Repointed all anon mentor reads to `public_mentors`**: mentors list, mentor detail (now shows session price/availability/socials/gated contact), program detail mentor tab, homepage featured, sitemap. Admin list shows status/inactive badges + sort order. bio stays on profiles.bio. |
-| 7 | Appointment booking system | ☐ Not started | |
+| 7 | Appointment booking system | ◐ Code-complete — **needs migrations 012 + 013 applied to Supabase** | Build + tsc + eslint + vitest(36, +7 new slot tests) clean; dev smoke: `/` 200, `/appointments` + `/dashboard/appointments` + `/admin/appointments` 307→login, no runtime errors, degrades gracefully pre-migration. Files: migration `013_appointments.sql` (`appointment_types` seeded with the 7 default types, `appointments` with self-contained manual-bKash payment fields + slot unique index + `protect_appointments` guard trigger blocking student self-confirm/self-pay, `notifications` for student/mentor/admin) + RLS. Types updated. `features/appointments/{slots,schema,actions,admin-actions}.ts`: pure TZ-safe slot generation from mentor `availability`+`session_duration` (extended jsonb with optional `max_per_day`+`unavailable_dates`), student actions (getDaySlots/getMentorsForSlot union across active mentors via `public_mentors`, createAppointment→pending, submitAppointmentPayment→submitted+redirect, cancel/reschedule/getRescheduleSlots), admin actions (type CRUD, status/payment/mentor/reschedule/meeting-link/delete, saveMentorSchedule, getMentorDaySlots). `features/notifications/{service,actions}.ts` (service-role fan-out + mark-read). Public 5-step wizard `app/appointments/page.tsx`+`components/appointments/booking-wizard.tsx` (progress bar, type cards, month calendar+slots w/ available/selected/booked legend, details form, mentor cards, review summary) → `[id]/pay` (bKash card + `appointment-payment-form.tsx`) → `[id]/confirmation`. Dashboard `dashboard/appointments` My Appointments (`my-appointments.tsx`: upcoming/completed/cancelled tabs, cancel, reschedule dialog, join, pay-now, payment status). Admin `admin/appointments` (KPIs + today's list + `admin-notifications.tsx`), `/all` (`appointments-table.tsx`: search/filter + per-row Manage dialog), `/calendar` (monthly booking counts), `/schedule` (`mentor-schedule-editor.tsx`: days/hours/breaks/max-per-day/holidays), `/types` (`types-manager.tsx`). Nav: `Appointments` added to navbar + admin/dashboard sidebars + i18n EN/বাংলা; proxy protects `/appointments`. Shared `appointment-icon.tsx` (string-key registry), `status-badge.tsx` (green=confirmed/paid/completed only). Slots derived at request time — no slot table. |
 | 8 | Checkout redesign | ☐ Not started | |
 | 9 | Notifications + i18n + final QA | ☐ Not started | |
 
 Status legend: ☐ Not started · ◐ In progress · ✅ Done (build + verified).
 
-**Latest migration number applied:** 011 (Chunks 1–5 active). **Migration 012
-(Chunk 6 mentor columns + `public_mentors` view + base-table lockdown) authored but
-NOT yet applied** — apply it before mentor management works end-to-end. NOTE: 012
-deploys WITH its app code (like mig-006) — it locks the base `mentors` table and
-routes public reads through `public_mentors`, so mentor pages degrade to empty/404
-until it is applied. Next new = 013 (Chunk 7 appointments).
+**Latest migration number applied:** 011 (Chunks 1–5 active). **Migrations 012
+(Chunk 6) and 013 (Chunk 7) authored but NOT yet applied.** Apply 012 first (it
+locks the base `mentors` table and routes public reads through `public_mentors`;
+mentor pages degrade to empty/404 until applied), then 013 (appointment_types +
+appointments + notifications). Chunk 7's booking wizard reads mentor availability
+via `public_mentors`, so it needs BOTH 012 and 013 live to work end-to-end; until
+then `/appointments` shows the "booking is being set up" empty state and admin
+appointment pages show zeroes. Next new = 014 (Chunk 8 checkout redesign — no DB).
 **Session log:**
 - 2026-07-22 — Master plan authored. No code changes yet.
 - 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
@@ -643,6 +645,27 @@ until it is applied. Next new = 013 (Chunk 7 appointments).
   runtime errors, degrades gracefully pre-migration. **Migration 012 NOT yet applied**
   — deploy it WITH this code (locks base table). Next: **Chunk 7 (Appointments)**,
   which consumes mentor availability + session pricing from this chunk.
+- 2026-07-22 — Chunk 7 built (code-complete): full appointment booking system
+  (migration 013). New tables `appointment_types` (7 defaults seeded), `appointments`
+  (self-contained manual-bKash payment fields; slot unique index prevents
+  double-booking; `protect_appointments` guard trigger blocks students from
+  self-confirming or self-marking paid), and `notifications` (student/mentor/admin
+  feed). Slots are derived at request time from each mentor's Chunk-6 `availability`
+  jsonb + `session_duration` (extended with optional `max_per_day` + `unavailable_dates`)
+  minus booked slots — no slot table; read across active mentors via `public_mentors`,
+  booked tuples via the service role. Public 5-step wizard (Type → Date&Time → Details
+  → Mentor → Review&Pay) → dedicated pay page (reuses payment_settings + payment-
+  screenshots bucket) → confirmation. Student My Appointments (cancel / reschedule /
+  join / pay). Admin: dashboard KPIs + today's list + notifications panel, All
+  Appointments (search/filter + Manage dialog: status/payment/mentor/reschedule/link/
+  delete), Calendar view, Mentor Schedule editor (days/hours/breaks/cap/holidays),
+  Appointment Types manager. Nav item added (navbar + admin/dashboard sidebars +
+  EN/বাংলা i18n); proxy protects `/appointments`. Marking payment paid auto-confirms
+  + notifies. Green kept status-only (confirmed/paid/available). `npm run build` + tsc
+  + eslint + vitest(36, incl. 7 new slot tests) clean; dev smoke: public 200,
+  protected 307→login, no runtime errors, degrades gracefully. **Migrations 012 + 013
+  NOT yet applied** — apply both before booking works end-to-end. Next: **Chunk 8
+  (Checkout redesign)**.
 
 ---
 

@@ -1105,6 +1105,150 @@ export type Database = {
         };
         Relationships: [];
       };
+      appointment_types: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          icon: string;
+          default_price_bdt: number;
+          default_duration: number;
+          status: string;
+          sort_order: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          icon?: string;
+          default_price_bdt?: number;
+          default_duration?: number;
+          status?: string;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          icon?: string;
+          default_price_bdt?: number;
+          default_duration?: number;
+          status?: string;
+          sort_order?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      appointments: {
+        Row: {
+          id: string;
+          user_id: string;
+          mentor_id: string;
+          type_id: string | null;
+          appointment_date: string;
+          start_time: string;
+          end_time: string | null;
+          duration: number;
+          platform: string;
+          meeting_link: string | null;
+          amount_bdt: number;
+          payment_method: string;
+          sender_number: string | null;
+          transaction_id: string | null;
+          paid_amount_bdt: number | null;
+          screenshot_path: string | null;
+          payment_status: string;
+          status: string;
+          details: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          mentor_id: string;
+          type_id?: string | null;
+          appointment_date: string;
+          start_time: string;
+          end_time?: string | null;
+          duration?: number;
+          platform?: string;
+          meeting_link?: string | null;
+          amount_bdt?: number;
+          payment_method?: string;
+          sender_number?: string | null;
+          transaction_id?: string | null;
+          paid_amount_bdt?: number | null;
+          screenshot_path?: string | null;
+          payment_status?: string;
+          status?: string;
+          details?: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          mentor_id?: string;
+          type_id?: string | null;
+          appointment_date?: string;
+          start_time?: string;
+          end_time?: string | null;
+          duration?: number;
+          platform?: string;
+          meeting_link?: string | null;
+          amount_bdt?: number;
+          payment_method?: string;
+          sender_number?: string | null;
+          transaction_id?: string | null;
+          paid_amount_bdt?: number | null;
+          screenshot_path?: string | null;
+          payment_status?: string;
+          status?: string;
+          details?: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          role: string;
+          type: string;
+          title: string;
+          body: string | null;
+          payload: Json;
+          read: boolean;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          role?: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          payload?: Json;
+          read?: boolean;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          role?: string;
+          type?: string;
+          title?: string;
+          body?: string | null;
+          payload?: Json;
+          read?: boolean;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       // Non-null base columns (id, slug, title, kind, price_bdt, question, ...)

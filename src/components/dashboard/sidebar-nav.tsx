@@ -6,6 +6,7 @@ import {
   BadgeDollarSign,
   BookMarked,
   BookOpen,
+  CalendarClock,
   ClipboardList,
   FileText,
   GraduationCap,
@@ -40,6 +41,7 @@ const ICONS: Record<string, LucideIcon> = {
   tests: ClipboardList,
   profile: UserRound,
   reviews: Star,
+  appointments: CalendarClock,
 };
 
 export type NavItem = {

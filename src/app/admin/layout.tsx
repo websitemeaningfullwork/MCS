@@ -10,6 +10,7 @@ const items: NavItem[] = [
   { href: "/admin/payments", label: "Payment Requests", icon: "payments" },
   { href: "/admin/users", label: "Users", icon: "users" },
   { href: "/admin/mentors", label: "Mentors", icon: "mentors" },
+  { href: "/admin/appointments", label: "Appointments", icon: "appointments" },
   { href: "/admin/programs", label: "Programs", icon: "admin-programs" },
   { href: "/admin/resources", label: "Resources", icon: "resources" },
   { href: "/admin/blog", label: "Blog", icon: "blog" },

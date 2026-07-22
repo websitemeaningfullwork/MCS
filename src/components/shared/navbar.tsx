@@ -104,6 +104,7 @@ export function Navbar() {
     { href: "/mentors", label: dict.nav.mentors },
     { href: "/resources", label: dict.nav.ebooks },
     { href: "/live-classes", label: dict.nav.liveClasses },
+    { href: "/appointments", label: dict.nav.appointments },
   ];
 
   const allLinks = [
@@ -112,6 +113,7 @@ export function Navbar() {
     { href: "/mentors", label: dict.nav.mentors },
     { href: "/resources", label: dict.nav.ebooks },
     { href: "/live-classes", label: dict.nav.liveClasses },
+    { href: "/appointments", label: dict.nav.appointments },
     { href: "/mock-tests", label: dict.nav.mockTests },
     { href: "/community", label: dict.nav.community },
     { href: "/blog", label: dict.nav.blog },

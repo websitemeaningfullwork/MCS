@@ -18,6 +18,7 @@ function isProtectedPath(pathname: string): boolean {
     pathname === "/mentor" ||
     pathname.startsWith("/mentor/") ||
     pathname.startsWith("/checkout") ||
+    pathname.startsWith("/appointments") ||
     pathname.startsWith("/admin")
   );
 }
@@ -66,7 +67,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/dashboard") ||
     pathname === "/mentor" ||
     pathname.startsWith("/mentor/") ||
-    pathname.startsWith("/checkout");
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/appointments");
 
   if (requiresAuth && !user) {
     const url = request.nextUrl.clone();
