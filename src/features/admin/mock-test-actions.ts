@@ -52,7 +52,9 @@ export async function saveMockTest(input: MockTestInput): Promise<{ error?: stri
   if (d.id) {
     const { error } = await supabase.from("mock_tests").update(row).eq("id", d.id);
     if (error) {
+      // 23505 = slug unique violation; anything else is unexpected, so log it.
       if (error.code === "23505") return { error: "That slug is already in use." };
+      console.error("saveMockTest: update failed", error);
       return { error: "Could not save the test." };
     }
     revalidatePath("/admin/mock-tests");
@@ -66,6 +68,7 @@ export async function saveMockTest(input: MockTestInput): Promise<{ error?: stri
     .single();
   if (error || !created) {
     if (error?.code === "23505") return { error: "That slug is already in use." };
+    console.error("saveMockTest: insert failed", error);
     return { error: "Could not create the test." };
   }
   revalidatePath("/admin/mock-tests");
@@ -101,12 +104,16 @@ export async function addQuestion(
     return { error: "Pick the correct option." };
   }
 
+  // Non-fatal: a failed count only degrades the sort_order default.
   const { count } = await supabase
     .from("mock_questions")
     .select("id", { count: "exact", head: true })
     .eq("mock_test_id", testId);
 
-  await supabase.from("mock_questions").insert({
+  // The insert result was discarded here, so a constraint violation or an RLS
+  // denial still produced a success toast with no question saved. Check it like
+  // deleteMockTest does.
+  const { error } = await supabase.from("mock_questions").insert({
     mock_test_id: testId,
     question: input.question.trim(),
     options: input.options as unknown as Json,
@@ -114,6 +121,10 @@ export async function addQuestion(
     explanation: input.explanation.trim() || null,
     sort_order: count ?? 0,
   });
+  if (error) {
+    console.error("addQuestion: insert failed", error);
+    return { error: "Could not add the question. Please try again." };
+  }
   revalidatePath(`/admin/mock-tests/${testId}/edit`);
   return {};
 }
@@ -124,7 +135,13 @@ export async function deleteQuestion(
 ): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  await supabase.from("mock_questions").delete().eq("id", questionId);
+  // Was fire-and-forget: a blocked delete reported success and the question
+  // reappeared on the next refresh. Match deleteMockTest's handling.
+  const { error } = await supabase.from("mock_questions").delete().eq("id", questionId);
+  if (error) {
+    console.error("deleteQuestion: delete failed", error);
+    return { error: "Could not delete the question. Please try again." };
+  }
   revalidatePath(`/admin/mock-tests/${testId}/edit`);
   return {};
 }

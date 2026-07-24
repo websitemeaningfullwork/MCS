@@ -166,13 +166,22 @@ export function QuizManager({
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">
-                <Button size="icon" variant="ghost" className="size-7" onClick={() => edit(q)}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  aria-label={`Edit question ${i + 1}`}
+                  title={`Edit question ${i + 1}`}
+                  onClick={() => edit(q)}
+                >
                   <Pencil className="size-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label={`Delete question ${i + 1}`}
+                  title={`Delete question ${i + 1}`}
                   onClick={() => remove(q.id)}
                 >
                   <Trash2 className="size-3.5" />
@@ -230,7 +239,9 @@ export function QuizManager({
                   <div key={idx} className="flex items-center gap-2">
                     <button
                       type="button"
-                      aria-label="Mark correct"
+                      aria-label={`Mark option ${idx + 1} as the correct answer`}
+                      aria-pressed={isCorrect}
+                      title="Mark as correct answer"
                       onClick={() => setDraft({ ...draft, correct_answer: opt })}
                       className={
                         isCorrect
@@ -260,6 +271,8 @@ export function QuizManager({
                         size="icon"
                         variant="ghost"
                         className="size-8 shrink-0"
+                        aria-label={`Remove option ${idx + 1}`}
+                        title={`Remove option ${idx + 1}`}
                         onClick={() =>
                           setDraft({
                             ...draft,

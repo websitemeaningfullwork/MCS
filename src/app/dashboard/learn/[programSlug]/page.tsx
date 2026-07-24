@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { CoursePlayer } from "@/components/dashboard/course-player/course-player";
 import type {
   OwnReview,
@@ -188,7 +189,11 @@ export default async function LearnPage({
           id: l.id,
           title: l.title,
           video_url: l.video_url ?? null,
-          overview_html: l.overview_html ?? null,
+          // Sanitized again on read (it is already sanitized on write) so rows
+          // stored before that landed cannot execute — the player renders this
+          // with dangerouslySetInnerHTML. Collapse "" back to null so the
+          // player still falls through to content_md / the empty state.
+          overview_html: sanitizeRichText(l.overview_html) || null,
           content_md: l.content_md ?? null,
           admin_notes: l.admin_notes ?? null,
           duration_seconds: l.duration_seconds ?? null,

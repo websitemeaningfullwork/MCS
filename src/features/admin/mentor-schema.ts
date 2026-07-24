@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { optionalHttpUrlSchema } from "@/lib/safe-url";
+
 export const WEEKDAYS = [
   { key: "mon", label: "Mon" },
   { key: "tue", label: "Tue" },
@@ -73,10 +75,14 @@ export const saveMentorSchema = z.object({
   session_duration: z.number().int().min(0).nullable().default(60),
   session_price_bdt: z.number().min(0).default(0),
   currency: z.string().trim().max(8).default("BDT"),
-  // Social
-  facebook_url: z.string().trim().max(300).optional().default(""),
-  youtube_url: z.string().trim().max(300).optional().default(""),
-  linkedin_url: z.string().trim().max(300).optional().default(""),
+  // Social — these render as raw anchors on the public mentor page, so a
+  // length-only check is not enough: it accepts `javascript:…`, which executes
+  // in our origin the moment a visitor clicks. `optionalHttpUrlSchema` still
+  // accepts "" (the form submits empty strings for blank fields) and still
+  // yields a plain string, so downstream `|| null` handling is unchanged.
+  facebook_url: optionalHttpUrlSchema,
+  youtube_url: optionalHttpUrlSchema,
+  linkedin_url: optionalHttpUrlSchema,
   // Status
   is_featured: z.boolean().default(false),
   is_verified: z.boolean().default(false),

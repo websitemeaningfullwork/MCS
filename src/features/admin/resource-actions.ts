@@ -35,6 +35,19 @@ const resourceSchema = z.object({
   ]),
   description: z.string().optional(),
   price_bdt: z.number().min(0),
+  /**
+   * A Supabase Storage object key (e.g. "resources/<uuid>.pdf"), NOT a URL —
+   * it is only ever handed to `storage.from(...).createSignedUrl()` in
+   * app/dashboard/resources/[id]/download/route.ts, which produces the href.
+   * So it deliberately does not use the http(s) URL schemas: an absolute URL
+   * here would simply fail to resolve to an object, never render as a link.
+   *
+   * NOTE: the `resources` table also has an `external_url` column, but this
+   * schema and the admin form do not expose it, so there is no write path to
+   * validate today. If it is ever surfaced in the form it must use
+   * `optionalHttpUrlSchema` from @/lib/safe-url — it would be rendered as an
+   * anchor, exactly like the mentor social links.
+   */
   file_storage_path: z.string().optional(),
   is_featured: z.boolean(),
   is_premium: z.boolean(),

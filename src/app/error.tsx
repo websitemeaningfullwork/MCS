@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/observability";
 
 export default function Error({
   error,
@@ -11,8 +12,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log for server/observability; avoid leaking details to the user.
-    console.error(error);
+    // Structured report for observability; the user still sees only a generic
+    // message so we never leak internals into the UI.
+    reportError(error, { scope: "route-error:root", digest: error.digest });
   }, [error]);
 
   return (

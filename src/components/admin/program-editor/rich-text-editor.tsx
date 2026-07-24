@@ -14,13 +14,23 @@ import {
   Link2Off,
   Highlighter,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { cn } from "@/lib/utils";
+import { isHttpUrl } from "@/lib/safe-url";
 
 /**
  * Lightweight rich-text editor for the class Overview tab. Uses a contentEditable
  * surface + document.execCommand (deprecated but universally supported in current
  * browsers — fine for an internal admin tool, and keeps the bundle dependency-free).
- * Emits sanitized-ish HTML via onChange; the parent debounces the persistence.
+ * Emits raw innerHTML via onChange; the parent debounces the persistence.
+ *
+ * SECURITY: what this component emits is NOT trusted markup. The authoritative
+ * sanitization happens server-side in `sanitizeRichText` (see
+ * features/admin/program-editor-actions.ts) because anyone who can call the
+ * server action can skip this UI entirely. The two guards below — http(s)-only
+ * links and plain-text paste — exist so the admin's own editor never *builds*
+ * markup that the server would silently strip, not as the security boundary.
  *
  * The parent should mount this with `key={classId}` so switching classes reloads
  * fresh content without fighting React over the contentEditable DOM.
@@ -69,7 +79,30 @@ export function RichTextEditor({
   function addLink() {
     const url = window.prompt("Link URL", "https://");
     if (!url) return;
-    exec("createLink", url);
+    const trimmed = url.trim();
+    // `createLink` will happily build <a href="javascript:…"> from whatever the
+    // prompt returns, and that anchor would be persisted into the lesson
+    // overview and shown to every enrolled student. Only absolute http(s) links
+    // get through — the server strips anything else anyway, so rejecting here
+    // avoids the confusing "my link vanished on save" outcome.
+    if (!isHttpUrl(trimmed)) {
+      toast.error("Enter a full link starting with http:// or https://");
+      return;
+    }
+    exec("createLink", trimmed);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    // Default contentEditable paste inserts the clipboard's text/html flavour
+    // verbatim — copying from a web page drags in that page's markup, styles
+    // and event handlers. Insert the plain-text flavour instead so the editor
+    // only ever contains formatting the toolbar produced. `insertText` (rather
+    // than mutating the DOM directly) keeps the browser's native undo stack.
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    if (!text) return;
+    document.execCommand("insertText", false, text);
+    emit();
   }
 
   return (
@@ -143,6 +176,7 @@ export function RichTextEditor({
           aria-multiline="true"
           onInput={emit}
           onBlur={emit}
+          onPaste={handlePaste}
           className={cn(
             "prose prose-sm dark:prose-invert max-w-none min-h-40 px-4 py-3 text-sm text-foreground outline-none",
             "[&_h2]:mt-2 [&_h2]:text-lg [&_h3]:text-base [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarDays, Radio, Video } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/marketing/empty-state";
@@ -71,8 +71,16 @@ function partitionClasses(all: Tables<"live_classes">[]) {
   return { upcoming, recorded };
 }
 
+// Public schedule — identical for every visitor, so it reads through the
+// cookieless public client and is prerendered + revalidated rather than
+// server-rendered on every request. The upcoming/recorded split is computed
+// from `Date.now()` at render time, so with a 5-minute window a class can
+// linger in "Upcoming" for at most that long after it starts — an acceptable
+// trade for CDN-served page loads.
+export const revalidate = 300;
+
 export default async function LiveClassesPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("live_classes")
     .select("*")

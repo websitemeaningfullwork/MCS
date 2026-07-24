@@ -3,11 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Markdown } from "@/components/shared/markdown";
 
+// A published post is the same for every visitor, so this page reads through the
+// cookieless public client (see lib/supabase/public.ts) instead of the session
+// client. That keeps it out of dynamic rendering: it is prerendered at build
+// time for every known slug and revalidated every 10 minutes, so repeat reads
+// are served from the CDN rather than costing a Supabase round-trip each hit.
+export const revalidate = 600;
+
+// Slugs published after the last build aren't in generateStaticParams; allow
+// them to be rendered (and then cached) on first request rather than 404ing.
+export const dynamicParams = true;
+
 async function getPost(slug: string) {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("blog_posts")
     .select("*")
@@ -15,6 +26,15 @@ async function getPost(slug: string) {
     .eq("status", "published")
     .maybeSingle();
   return data;
+}
+
+export async function generateStaticParams() {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from("blog_posts")
+    .select("slug")
+    .eq("status", "published");
+  return (data ?? []).map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({

@@ -23,6 +23,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
@@ -335,6 +336,9 @@ export async function createClass(
 const classPatchSchema = z.object({
   title: z.string().min(1).optional(),
   video_url: z.string().nullable().optional(),
+  // Shape only — the value itself is run through `sanitizeRichText` in
+  // updateClass below, because it is later rendered with
+  // dangerouslySetInnerHTML in the course player.
   overview_html: z.string().nullable().optional(),
   thumbnail_url: z.string().nullable().optional(),
   admin_notes: z.string().nullable().optional(),
@@ -351,7 +355,19 @@ export async function updateClass(
   if (!parsed.success) return { error: "Please check the class fields." };
   const supabase = await assertAdmin();
   if (!supabase) return { error: "Not authorized." };
-  const { error } = await supabase.from("lessons").update(parsed.data).eq("id", classId);
+
+  // The Overview editor is a contentEditable surface whose raw innerHTML is
+  // posted here, and the course player renders it with dangerouslySetInnerHTML
+  // — so this is the choke point where arbitrary markup becomes a stored XSS
+  // payload. Sanitize before it ever reaches the database. `undefined` means
+  // "this patch doesn't touch the field"; `null` means "clear it"; only an
+  // actual string needs cleaning.
+  const row = { ...parsed.data };
+  if (typeof row.overview_html === "string") {
+    row.overview_html = sanitizeRichText(row.overview_html);
+  }
+
+  const { error } = await supabase.from("lessons").update(row).eq("id", classId);
   if (error) {
     console.error("updateClass failed", error);
     return { error: "Could not save the class." };
@@ -419,7 +435,10 @@ export async function duplicateClass(classId: string): Promise<Result<ClassRow>>
       title: `${src.title} (Copy)`,
       video_url: src.video_url,
       content_md: src.content_md,
-      overview_html: src.overview_html,
+      // Re-sanitize on copy rather than trusting the source row: rows written
+      // before sanitization landed can still hold a payload, and duplicating a
+      // class must not launder it into a fresh one.
+      overview_html: src.overview_html ? sanitizeRichText(src.overview_html) : null,
       thumbnail_url: src.thumbnail_url,
       admin_notes: src.admin_notes,
       status: "draft",

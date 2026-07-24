@@ -69,7 +69,10 @@ export async function saveBlogPost(input: BlogInput): Promise<{ error?: string }
     : await supabase.from("blog_posts").insert(row);
 
   if (error) {
+    // 23505 = slug unique violation; anything else is unexpected, so log it
+    // alongside the friendly message (same shape as deleteBlogPost).
     if (error.code === "23505") return { error: "That slug is already in use." };
+    console.error("saveBlogPost: write failed", error);
     return { error: "Could not save the post." };
   }
 

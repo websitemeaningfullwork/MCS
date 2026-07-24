@@ -5,6 +5,10 @@ import {
   formatSlotLabel,
   weekdayKey,
   generateMentorSlots,
+  todayInDhaka,
+  nowMinutesInDhaka,
+  isSlotPast,
+  BOOKING_LEAD_MINUTES,
 } from "./slots";
 
 describe("time helpers", () => {
@@ -54,5 +58,55 @@ describe("generateMentorSlots", () => {
   it("defaults the step to 120 minutes when duration is missing", () => {
     const slots = generateMentorSlots(availability, null, "2026-07-22");
     expect(slots.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Dhaka clock helpers", () => {
+  // Dhaka is a fixed UTC+6 with no DST, so these are exact.
+  const at15 = new Date("2026-07-22T09:00:00Z"); // 15:00 Dhaka, 2026-07-22
+  const justAfterMidnight = new Date("2026-07-22T18:30:00Z"); // 00:30 Dhaka, 2026-07-23
+
+  it("reads the Dhaka date from an injected clock", () => {
+    expect(todayInDhaka(at15)).toBe("2026-07-22");
+    // The UTC day is still the 22nd here — Dhaka has already rolled over.
+    expect(todayInDhaka(justAfterMidnight)).toBe("2026-07-23");
+  });
+
+  it("returns minutes past midnight in Dhaka", () => {
+    expect(nowMinutesInDhaka(at15)).toBe(15 * 60);
+    // Midnight must be 0, not 1440 — the h23/h24 ('24:00') trap.
+    expect(nowMinutesInDhaka(new Date("2026-07-21T18:00:00Z"))).toBe(0);
+    expect(nowMinutesInDhaka(justAfterMidnight)).toBe(30);
+  });
+});
+
+describe("isSlotPast", () => {
+  const at15 = new Date("2026-07-22T09:00:00Z"); // 15:00 Dhaka, 2026-07-22
+
+  it("treats whole earlier dates as past and later dates as bookable", () => {
+    expect(isSlotPast("2026-07-21", "23:00", at15)).toBe(true);
+    expect(isSlotPast("2026-07-23", "00:00", at15)).toBe(false);
+  });
+
+  it("rejects times that have already started today", () => {
+    expect(isSlotPast("2026-07-22", "09:00", at15)).toBe(true);
+    expect(isSlotPast("2026-07-22", "15:00", at15)).toBe(true);
+    expect(isSlotPast("2026-07-22", "17:00", at15)).toBe(false);
+  });
+
+  it("applies the lead-time buffer to imminent slots", () => {
+    const nowMin = 15 * 60;
+    expect(isSlotPast("2026-07-22", toHHMM(nowMin + BOOKING_LEAD_MINUTES - 1), at15)).toBe(true);
+    expect(isSlotPast("2026-07-22", toHHMM(nowMin + BOOKING_LEAD_MINUTES), at15)).toBe(false);
+  });
+
+  it("uses the Dhaka day, not the UTC day, around midnight", () => {
+    const justAfterMidnight = new Date("2026-07-22T18:30:00Z"); // 00:30 Dhaka on the 23rd
+    expect(isSlotPast("2026-07-22", "23:00", justAfterMidnight)).toBe(true);
+    expect(isSlotPast("2026-07-23", "09:00", justAfterMidnight)).toBe(false);
+  });
+
+  it("refuses a malformed time rather than letting it through", () => {
+    expect(isSlotPast("2026-07-22", "not-a-time", at15)).toBe(true);
   });
 });

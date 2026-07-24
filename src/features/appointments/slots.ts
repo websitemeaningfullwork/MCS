@@ -114,11 +114,72 @@ export function generateMentorSlots(
 }
 
 /** Today's date in Asia/Dhaka (GMT+6) as 'YYYY-MM-DD' — the platform time zone. */
-export function todayInDhaka(): string {
+export function todayInDhaka(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Dhaka",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(now);
+}
+
+/**
+ * Current wall-clock time in Asia/Dhaka as minutes past midnight.
+ *
+ * `now` is injectable so the past-slot rules below stay pure & unit-testable —
+ * production callers just use the real clock. We read `formatToParts` with an
+ * explicit `hourCycle: "h23"` rather than `hour12: false`, because the latter
+ * can render midnight as "24:00" in some locales/ICU builds, which would make
+ * 00:xx look like the *end* of the day instead of the start.
+ */
+export function nowMinutesInDhaka(now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dhaka",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return NaN;
+  return (hour % 24) * 60 + minute;
+}
+
+/**
+ * Minimum notice, in minutes, between "now" and the start of a bookable slot.
+ *
+ * WHY: a slot that starts in 90 seconds is technically still in the future but
+ * useless — nobody can pay, be verified and join in time, and it invites the
+ * "I booked it at 08:59 for 09:00" support ticket. Small, named and exported so
+ * both the slot list and the server-side guard use the exact same number.
+ */
+export const BOOKING_LEAD_MINUTES = 15;
+
+/**
+ * True when a slot may no longer be booked because its start time has passed
+ * (or is within `BOOKING_LEAD_MINUTES`) in Dhaka time.
+ *
+ * Handles all three cases in one place so `getDaySlots`, `createAppointment`,
+ * `getRescheduleSlots` and `rescheduleAppointment` cannot drift apart:
+ *   - an earlier calendar date  → always past
+ *   - a later calendar date     → never past
+ *   - today                     → compare the slot time against the Dhaka clock
+ *
+ * A malformed time is treated as past (refuse to book what we cannot reason
+ * about); callers validate the 'HH:MM' shape before reaching the DB anyway.
+ */
+export function isSlotPast(
+  dateISO: string,
+  startHHMM: string,
+  now: Date = new Date(),
+): boolean {
+  const today = todayInDhaka(now);
+  if (dateISO < today) return true;
+  if (dateISO > today) return false;
+
+  const start = toMinutes(startHHMM);
+  if (Number.isNaN(start)) return true;
+  const nowMinutes = nowMinutesInDhaka(now);
+  if (Number.isNaN(nowMinutes)) return false;
+  return start < nowMinutes + BOOKING_LEAD_MINUTES;
 }

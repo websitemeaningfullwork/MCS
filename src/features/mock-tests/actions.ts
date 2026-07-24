@@ -93,7 +93,10 @@ export async function submitAttempt(
     };
   });
 
-  const { error: insertErr } = await supabase.from("test_attempts").insert({
+  // Attempts are server-written only (migration 014): the "attempts: own"
+  // policy is SELECT-only, so students can't forge a score through the REST
+  // API. Insert with the same service-role client used for the answer keys.
+  const { error: insertErr } = await admin.from("test_attempts").insert({
     user_id: user.id,
     mock_test_id: testId,
     score,

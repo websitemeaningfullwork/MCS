@@ -68,7 +68,15 @@ export async function setLessonCompletion(
     return { error: "Could not save your progress. Please try again." };
   }
 
-  // Recompute program progress across all lessons.
+  // Recompute program progress across the lessons a student can actually reach.
+  //
+  // The denominator MUST match what the course player shows. The player filters
+  // `status = 'published'` for non-admins, so counting draft/hidden classes here
+  // made 100% unreachable: a student finished everything visible and the bar
+  // stuck at e.g. 80%, and completed_at was never written. It also disagreed with
+  // isScopeComplete() in features/reviews/actions.ts (which does filter on
+  // published), so the "leave a course review" CTA unlocked on a course the
+  // dashboard still called incomplete. Same filter here => the two agree.
   const { data: modules } = await supabase
     .from("modules")
     .select("id")
@@ -76,9 +84,18 @@ export async function setLessonCompletion(
   const moduleIds = (modules ?? []).map((m) => m.id);
 
   const { data: lessons } = moduleIds.length
-    ? await supabase.from("lessons").select("id").in("module_id", moduleIds)
+    ? await supabase
+        .from("lessons")
+        .select("id")
+        .in("module_id", moduleIds)
+        .eq("status", "published")
     : { data: [] };
   const lessonIds = (lessons ?? []).map((l) => l.id);
+  // A program with zero published lessons reports 0%, not 100%. Nothing has been
+  // learned yet — the content simply isn't live — so claiming completion would
+  // stamp completed_at and hand out a "finished" course. This also matches
+  // isScopeComplete(), which returns false when there are no published lessons.
+  // The `|| 1` only guards the division; the numerator is 0 in that case anyway.
   const total = lessonIds.length || 1;
 
   const { count: completedCount } = lessonIds.length

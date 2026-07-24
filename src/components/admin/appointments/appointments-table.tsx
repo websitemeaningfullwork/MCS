@@ -26,6 +26,7 @@ import {
   AppointmentStatusBadge,
   PaymentStatusBadge,
 } from "@/components/appointments/status-badge";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import {
   updateAppointmentStatus,
   updateAppointmentPayment,
@@ -205,6 +206,7 @@ function ManageDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, start] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   const [status, setStatus] = useState(appt.status);
   const [payment, setPayment] = useState(appt.payment_status);
@@ -226,176 +228,185 @@ function ManageDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Settings2 className="size-4" /> Manage
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Manage appointment</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Settings2 className="size-4" /> Manage
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage appointment</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="rounded-xl bg-secondary/40 p-3 text-sm">
-            <p className="font-medium text-foreground">{d.full_name ?? "Customer"}</p>
-            <p className="text-muted-foreground">
-              {d.type_name ?? "Session"} · {appt.appointment_date} · {formatSlotLabel(appt.start_time)}
-            </p>
-            {d.phone ? <p className="text-muted-foreground">Phone: {d.phone}</p> : null}
-            {d.whatsapp ? <p className="text-muted-foreground">WhatsApp: {d.whatsapp}</p> : null}
-            {appt.transaction_id ? (
-              <p className="text-muted-foreground">TrxID: {appt.transaction_id}</p>
-            ) : null}
-            {d.note ? <p className="mt-1 text-muted-foreground">“{d.note}”</p> : null}
-          </div>
+          <div className="space-y-5">
+            <div className="rounded-xl bg-secondary/40 p-3 text-sm">
+              <p className="font-medium text-foreground">{d.full_name ?? "Customer"}</p>
+              <p className="text-muted-foreground">
+                {d.type_name ?? "Session"} · {appt.appointment_date} · {formatSlotLabel(appt.start_time)}
+              </p>
+              {d.phone ? <p className="text-muted-foreground">Phone: {d.phone}</p> : null}
+              {d.whatsapp ? <p className="text-muted-foreground">WhatsApp: {d.whatsapp}</p> : null}
+              {appt.transaction_id ? (
+                <p className="text-muted-foreground">TrxID: {appt.transaction_id}</p>
+              ) : null}
+              {d.note ? <p className="mt-1 text-muted-foreground">“{d.note}”</p> : null}
+            </div>
 
-          {/* Status */}
-          <Row label="Booking status">
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {appointmentStatuses.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {APPOINTMENT_STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              disabled={busy || status === appt.status}
-              onClick={() =>
-                run(
-                  () => updateAppointmentStatus(appt.id, status as AppointmentStatus),
-                  "Status updated.",
-                )
-              }
-            >
-              Save
-            </Button>
-          </Row>
-
-          {/* Payment */}
-          <Row label="Payment status">
-            <Select value={payment} onValueChange={setPayment}>
-              <SelectTrigger className="flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentStatuses.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {PAYMENT_STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              disabled={busy || payment === appt.payment_status}
-              onClick={() =>
-                run(
-                  () => updateAppointmentPayment(appt.id, payment as PaymentStatus),
-                  "Payment updated.",
-                )
-              }
-            >
-              Save
-            </Button>
-          </Row>
-
-          {/* Mentor */}
-          <Row label="Mentor">
-            <Select value={mentorId} onValueChange={setMentorId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {mentors.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              disabled={busy || mentorId === appt.mentor_id}
-              onClick={() =>
-                run(() => changeAppointmentMentor(appt.id, mentorId), "Mentor changed.")
-              }
-            >
-              Save
-            </Button>
-          </Row>
-
-          {/* Reschedule */}
-          <div className="space-y-2">
-            <Label>Reschedule</Label>
-            <div className="flex items-center gap-2">
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            {/* Status */}
+            <Row label="Booking status">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {appointmentStatuses.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {APPOINTMENT_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
-                disabled={busy}
+                disabled={busy || status === appt.status}
                 onClick={() =>
                   run(
-                    () => adminRescheduleAppointment(appt.id, date, time),
-                    "Rescheduled.",
+                    () => updateAppointmentStatus(appt.id, status as AppointmentStatus),
+                    "Status updated.",
                   )
                 }
               >
                 Save
               </Button>
-            </div>
-          </div>
+            </Row>
 
-          {/* Meeting link */}
-          <div className="space-y-2">
-            <Label htmlFor="link">Meeting link</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="link"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="https://meet.google.com/…"
-              />
+            {/* Payment */}
+            <Row label="Payment status">
+              <Select value={payment} onValueChange={setPayment}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentStatuses.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {PAYMENT_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
-                disabled={busy}
-                onClick={() => run(() => setMeetingLink(appt.id, link), "Meeting link saved.")}
+                disabled={busy || payment === appt.payment_status}
+                onClick={() =>
+                  run(
+                    () => updateAppointmentPayment(appt.id, payment as PaymentStatus),
+                    "Payment updated.",
+                  )
+                }
               >
                 Save
               </Button>
+            </Row>
+
+            {/* Mentor */}
+            <Row label="Mentor">
+              <Select value={mentorId} onValueChange={setMentorId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {mentors.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                disabled={busy || mentorId === appt.mentor_id}
+                onClick={() =>
+                  run(() => changeAppointmentMentor(appt.id, mentorId), "Mentor changed.")
+                }
+              >
+                Save
+              </Button>
+            </Row>
+
+            {/* Reschedule */}
+            <div className="space-y-2">
+              <Label>Reschedule</Label>
+              <div className="flex items-center gap-2">
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      () => adminRescheduleAppointment(appt.id, date, time),
+                      "Rescheduled.",
+                    )
+                  }
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+
+            {/* Meeting link */}
+            <div className="space-y-2">
+              <Label htmlFor="link">Meeting link</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="link"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="https://meet.google.com/…"
+                />
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => run(() => setMeetingLink(appt.id, link), "Meeting link saved.")}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+
+            {/* Delete */}
+            <div className="border-t border-border pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={busy}
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Delete this appointment?",
+                    description: `${d.full_name ?? "This customer"}'s booking on ${appt.appointment_date} at ${formatSlotLabel(appt.start_time)} will be permanently deleted. This cannot be undone.`,
+                    confirmLabel: "Delete appointment",
+                  });
+                  if (!ok) return;
+                  run(async () => {
+                    const res = await deleteAppointment(appt.id);
+                    if (!res.error) setOpen(false);
+                    return res;
+                  }, "Appointment deleted.");
+                }}
+              >
+                {busy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                Delete appointment
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* Delete */}
-          <div className="border-t border-border pt-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              disabled={busy}
-              onClick={() => {
-                if (!confirm("Delete this appointment permanently?")) return;
-                run(async () => {
-                  const res = await deleteAppointment(appt.id);
-                  if (!res.error) setOpen(false);
-                  return res;
-                }, "Appointment deleted.");
-              }}
-            >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-              Delete appointment
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {confirmDialog}
+    </>
   );
 }
 

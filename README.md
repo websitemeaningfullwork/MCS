@@ -61,17 +61,33 @@ Build plan and specification live in [`/docs`](./docs):
 ## Database
 
 `supabase/migrations/` is the **single source of truth** for the database. Apply
-every migration in filename order (`000` → `008`) — either with the Supabase CLI:
+**every file in `supabase/migrations/`, in filename order** — either with the
+Supabase CLI:
 
 ```bash
 supabase db push
 ```
 
-…or by pasting each file into the Supabase SQL editor in order. `000_base_schema.sql`
-creates all tables, RLS, and helpers; later migrations (`001`–`008`) patch on top.
-All are idempotent (safe to re-run) — `000` bakes in the hardened `006`/`007` policy
-set, so re-applying it no longer re-opens closed security holes. Always apply the
-full set; don't stop at `000`.
+…or by pasting each file into the Supabase SQL editor in order.
+`000_base_schema.sql` creates the core tables, RLS, and helper functions; every
+later migration patches on top — `003`–`004` storage buckets, `006`–`008`
+security hardening and indexes, `009` site settings, `010` the LMS
+(seasons/classes/quizzes), `011` reviews, `012` mentor management, `013`
+appointments + notifications, `014` attempt/payment integrity. Several of those
+add **new tables**, so a database stopped at `008` is missing core feature
+tables and the app will break.
+
+All migrations are idempotent (safe to re-run) — where a later migration
+tightens or removes a policy, the earlier file keeps the `drop policy if exists`
+without recreating it, so re-running any file on an already-migrated database
+never re-opens a closed security hole. Always apply the full set; don't stop at
+`000`.
+
+A few migrations must be deployed **together with the matching app code**,
+because they close direct table reads/writes the app used to rely on and route
+them through `public_*` views or the service role: `006` (public mentor
+profiles, resources, mock-test answer keys), `012` (the `mentors` table), and
+`014` (`test_attempts` writes).
 
 Then optionally load demo data with `supabase/seed.sql`.
 

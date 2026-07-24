@@ -11,7 +11,9 @@ language sql stable security definer set search_path = public as $$
   select coalesce((select role = 'admin' from public.profiles where id = auth.uid()), false)
 $$;
 
--- Ensure the public mentor-profile read policy exists (idempotent).
+-- Superseded by migration 006 (P1 #5): public mentor reads go through the
+-- column-safe public_mentor_profiles view, never the base `profiles` table
+-- (which exposes email/phone). Intentionally NOT recreated here; the drop stays
+-- so re-running 002 removes any legacy copy instead of re-opening the leak.
+-- (The is_admin() recursion fix above is this migration's real purpose.)
 drop policy if exists "profiles: public read mentors" on public.profiles;
-create policy "profiles: public read mentors" on public.profiles for select
-  using (role = 'mentor');

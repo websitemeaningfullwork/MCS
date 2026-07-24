@@ -30,6 +30,17 @@ describe("effectivePriceBDT", () => {
   it("treats missing base as 0", () => {
     expect(effectivePriceBDT(null, null)).toBe(0);
   });
+
+  // Guard rail: `discount_bdt` is the FINAL price a student pays, NOT an
+  // amount subtracted from the price. Two admin forms once labelled this
+  // column inconsistently ("Discount (BDT)" vs "Discount price (BDT)"), which
+  // meant an admin entering 500 to mean "৳500 off" a ৳5,000 course would have
+  // sold it for ৳500. If someone ever "fixes" this to subtract, this test
+  // fails loudly rather than silently repricing the catalogue.
+  it("treats discount_bdt as the final price, not the amount off", () => {
+    expect(effectivePriceBDT(5000, 500)).toBe(500);
+    expect(effectivePriceBDT(5000, 500)).not.toBe(4500);
+  });
 });
 
 describe("hasDiscount", () => {

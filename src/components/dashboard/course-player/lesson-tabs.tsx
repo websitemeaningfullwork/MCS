@@ -109,7 +109,12 @@ export function LessonTabs({
         {lesson.overview_html ? (
           <div
             className="prose prose-slate max-w-none dark:prose-invert prose-headings:tracking-tight prose-a:text-primary"
-            // Overview is authored by admins via the Chunk 3 editor (trusted source).
+            // Admin-authored HTML. It is NOT trusted on the strength of its
+            // author: it is run through `sanitizeRichText` twice — on write in
+            // features/admin/program-editor-actions.ts, and again on read in
+            // app/dashboard/learn/[programSlug]/page.tsx before it reaches this
+            // prop. Do not feed this prop from any other source without
+            // sanitizing it there too.
             dangerouslySetInnerHTML={{ __html: lesson.overview_html }}
           />
         ) : lesson.content_md ? (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Megaphone, MessagesSquare, Users } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { T } from "@/components/shared/t";
 import { COMMUNITY } from "@/lib/constants";
@@ -13,8 +13,13 @@ export const metadata: Metadata = {
     "Join the MCA learning community — connect with peers, stay motivated, and grow together.",
 };
 
+// Nothing here depends on the signed-in user — announcements are published blog
+// posts. Reading through the cookieless public client keeps the page statically
+// prerendered and CDN-served, revalidated every 10 minutes.
+export const revalidate = 600;
+
 export default async function CommunityPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data: announcements } = await supabase
     .from("blog_posts")
     .select("id, slug, title, published_at")

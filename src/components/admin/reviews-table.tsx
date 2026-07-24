@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Stars } from "@/components/reviews/stars";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { setReviewStatus, deleteReview } from "@/features/reviews/actions";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function ReviewsTable({ rows }: { rows: AdminReviewRow[] }) {
   const [search, setSearch] = useState("");
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -182,6 +184,7 @@ export function ReviewsTable({ rows }: { rows: AdminReviewRow[] }) {
                           variant="ghost"
                           size="icon"
                           title="Approve"
+                          aria-label={`Approve review by ${r.reviewerName}`}
                           disabled={busy}
                           onClick={() =>
                             runAction(r.id, () => setReviewStatus(r.id, "approved"), "Review approved")
@@ -199,6 +202,7 @@ export function ReviewsTable({ rows }: { rows: AdminReviewRow[] }) {
                           variant="ghost"
                           size="icon"
                           title="Hide"
+                          aria-label={`Hide review by ${r.reviewerName}`}
                           disabled={busy}
                           onClick={() =>
                             runAction(r.id, () => setReviewStatus(r.id, "hidden"), "Review hidden")
@@ -211,9 +215,15 @@ export function ReviewsTable({ rows }: { rows: AdminReviewRow[] }) {
                         variant="ghost"
                         size="icon"
                         title="Delete"
+                        aria-label={`Delete review by ${r.reviewerName}`}
                         disabled={busy}
-                        onClick={() => {
-                          if (!confirm("Delete this review permanently?")) return;
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: "Delete this review?",
+                            description: `The review by ${r.reviewerName} will be permanently deleted. This cannot be undone.`,
+                            confirmLabel: "Delete review",
+                          });
+                          if (!ok) return;
                           runAction(r.id, () => deleteReview(r.id), "Review deleted");
                         }}
                       >
@@ -231,6 +241,8 @@ export function ReviewsTable({ rows }: { rows: AdminReviewRow[] }) {
       <p className="text-xs text-muted-foreground">
         Showing {filtered.length} of {rows.length} reviews.
       </p>
+
+      {confirmDialog}
     </div>
   );
 }

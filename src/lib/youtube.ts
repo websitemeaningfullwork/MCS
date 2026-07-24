@@ -39,6 +39,42 @@ export function youtubeId(url: string | null | undefined): string | null {
   return null;
 }
 
+/**
+ * Hosts whose /embed/ URLs we are willing to pass through untouched. The
+ * return value of `youtubeEmbedUrl` becomes an `<iframe src>`, so this list is
+ * a security boundary: without it any URL merely *containing* "/embed/" —
+ * `https://attacker.com/embed/x` — could be framed inside our origin and used
+ * for clickjacking or a convincing credential-phishing overlay.
+ */
+const EMBED_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+]);
+
+/**
+ * True only for a genuine YouTube /embed/ URL.
+ *
+ * Parsed with `new URL()` rather than matched with a substring/regex: a check
+ * like `/\/embed\//.test(url)` or `url.includes("youtube.com")` is defeated by
+ * `https://attacker.com/embed/x`, `https://youtube.com.evil.tld/embed/x`, and
+ * `https://evil.tld/?x=youtube.com/embed/`. Only the parser agrees with the
+ * browser about where the host actually ends.
+ */
+function isYouTubeEmbedUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    if (!EMBED_HOSTS.has(parsed.hostname.toLowerCase())) return false;
+    return parsed.pathname.startsWith("/embed/");
+  } catch {
+    // Relative or otherwise unparseable input is never a valid iframe source.
+    return false;
+  }
+}
+
 /** Normalise any YouTube URL to a privacy-friendly nocookie embed URL. */
 export function youtubeEmbedUrl(url: string | null | undefined): string | null {
   const id = youtubeId(url);
@@ -47,9 +83,13 @@ export function youtubeEmbedUrl(url: string | null | undefined): string | null {
     // YouTube chrome minimal so students/visitors stay on MCA.
     return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
   }
-  // Already an embed URL whose id we can't parse (e.g. a playlist series) —
-  // trust it as-is rather than dropping the video entirely.
-  if (url && /\/embed\//.test(url)) return url.trim();
+  // A YouTube embed URL whose id we can't parse (e.g. /embed/videoseries?list=…
+  // for a playlist) — trust it as-is rather than dropping the video entirely,
+  // but only once we've confirmed it really is YouTube.
+  if (url) {
+    const trimmed = url.trim();
+    if (isYouTubeEmbedUrl(trimmed)) return trimmed;
+  }
   return null;
 }
 

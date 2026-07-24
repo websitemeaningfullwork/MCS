@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notify } from "@/features/notifications/service";
+import { notify, adminNotification } from "@/features/notifications/service";
 import { generateMentorSlots, type MentorAvailability } from "./slots";
 import {
   appointmentTypeSchema,
@@ -166,6 +166,28 @@ export async function updateAppointmentPayment(
   return {};
 }
 
+/**
+ * Move a booking to another mentor.
+ *
+ * WHY the pricing is handled the way it is: `amount_bdt` is a snapshot of the
+ * original mentor's `session_price_bdt` taken at booking time, so moving the
+ * booking to a mentor who charges differently leaves the row quoting a price
+ * nobody offers. The right answer depends on whether money already changed
+ * hands:
+ *
+ *  - Not paid yet (unpaid / submitted) → reprice to the new mentor's rate. The
+ *    student has not been charged against this figure, and the pay page quotes
+ *    `amount_bdt`, so leaving the stale number would have them pay the wrong
+ *    amount. The student is told the new figure in the notification.
+ *  - Already paid / refunded → DO NOT touch `amount_bdt`. That value has been
+ *    reconciled against a real bKash transaction; silently rewriting it would
+ *    desync the booking from the money and quietly manufacture a fake balance.
+ *    We keep the recorded amount and instead surface the discrepancy to the
+ *    admin team (notification) so a human decides on a refund or a top-up.
+ *
+ * `details.mentor_name` is refreshed either way — the student-facing pages read
+ * it, so a stale name is just a lie on their dashboard.
+ */
 export async function changeAppointmentMentor(
   id: string,
   mentorId: string,
@@ -175,14 +197,42 @@ export async function changeAppointmentMentor(
 
   const { data: mentor } = await admin
     .from("mentors")
-    .select("id")
+    .select("id, session_price_bdt")
     .eq("id", mentorId)
     .maybeSingle();
   if (!mentor) return { error: "Mentor not found." };
 
+  const { data: current } = await admin
+    .from("appointments")
+    .select("id, amount_bdt, payment_status, details")
+    .eq("id", id)
+    .maybeSingle();
+  if (!current) return { error: "Appointment not found." };
+
+  const { data: mentorProfile } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", mentorId)
+    .maybeSingle();
+
+  const newPrice = mentor.session_price_bdt ?? 0;
+  const oldPrice = Number(current.amount_bdt ?? 0);
+  const settled = ["paid", "refunded"].includes(current.payment_status);
+  const priceChanged = newPrice !== oldPrice;
+  const reprice = priceChanged && !settled;
+
+  const details = {
+    ...((current.details ?? {}) as Record<string, unknown>),
+    mentor_name: mentorProfile?.full_name ?? null,
+  };
+
   const { error } = await admin
     .from("appointments")
-    .update({ mentor_id: mentorId })
+    .update({
+      mentor_id: mentorId,
+      details,
+      ...(reprice ? { amount_bdt: newPrice } : {}),
+    })
     .eq("id", id);
   if (error) {
     if ((error as { code?: string }).code === "23505") {
@@ -193,15 +243,32 @@ export async function changeAppointmentMentor(
 
   const appt = await loadForNotify(admin, id);
   if (appt) {
+    const studentName = String(
+      (appt.details as Record<string, unknown> | null)?.full_name ?? "A student",
+    );
     await notify([
       {
         user_id: appt.user_id,
         role: "student",
         type: "appointment_mentor_changed",
         title: "Mentor updated",
-        body: `The mentor for your ${appt.appointment_date} session has been updated.`,
+        body: reprice
+          ? `The mentor for your ${appt.appointment_date} session has been updated. The session fee is now BDT ${newPrice}.`
+          : `The mentor for your ${appt.appointment_date} session has been updated.`,
         payload: { appointment_id: id },
       },
+      // Money already settled but the new mentor charges a different rate —
+      // flag it rather than rewriting a reconciled amount behind everyone's back.
+      ...(priceChanged && settled
+        ? [
+            adminNotification(
+              "appointment_price_mismatch",
+              "Mentor changed — price mismatch",
+              `${studentName}'s ${appt.appointment_date} session was moved to a mentor charging BDT ${newPrice}, but BDT ${oldPrice} was already settled. The recorded amount was left unchanged — issue a refund or collect the difference manually.`,
+              { appointment_id: id, old_amount_bdt: oldPrice, new_amount_bdt: newPrice },
+            ),
+          ]
+        : []),
     ]);
   }
   revalidateAppointments();

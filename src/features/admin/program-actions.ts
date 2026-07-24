@@ -66,7 +66,10 @@ export async function saveProgram(input: ProgramInput): Promise<{ error?: string
   if (d.id) {
     const { error } = await supabase.from("programs").update(row).eq("id", d.id);
     if (error) {
+      // 23505 is the slug unique violation — everything else is unexpected, so
+      // log it (the admin only ever sees the friendly string).
       if (error.code === "23505") return { error: "That slug is already in use." };
+      console.error("saveProgram: update failed", error);
       return { error: "Could not save the program." };
     }
     revalidatePath("/admin/programs");
@@ -81,6 +84,7 @@ export async function saveProgram(input: ProgramInput): Promise<{ error?: string
     .single();
   if (error || !created) {
     if (error?.code === "23505") return { error: "That slug is already in use." };
+    console.error("saveProgram: insert failed", error);
     return { error: "Could not create the program." };
   }
   revalidatePath("/admin/programs");
@@ -107,13 +111,21 @@ export async function addModule(
   if (!supabase) return { error: "Not authorized." };
   if (!title.trim()) return { error: "Enter a module title." };
 
+  // A failed count only costs us the sort_order hint (the insert below still
+  // reports its own errors), so it stays non-fatal.
   const { count } = await supabase
     .from("modules")
     .select("id", { count: "exact", head: true })
     .eq("program_id", programId);
-  await supabase
+  // The insert result was previously discarded: a constraint violation or an RLS
+  // denial produced a success toast and no row. Check it like deleteModule does.
+  const { error } = await supabase
     .from("modules")
     .insert({ program_id: programId, title: title.trim(), sort_order: count ?? 0 });
+  if (error) {
+    console.error("addModule: insert failed", error);
+    return { error: "Could not add the module. Please try again." };
+  }
   revalidatePath(`/admin/programs/${programId}/edit`);
   return {};
 }
@@ -147,11 +159,14 @@ export async function addLesson(
   if (!supabase) return { error: "Not authorized." };
   if (!input.title.trim()) return { error: "Enter a lesson title." };
 
+  // Non-fatal: a failed count only means a less useful sort_order default.
   const { count } = await supabase
     .from("lessons")
     .select("id", { count: "exact", head: true })
     .eq("module_id", moduleId);
-  await supabase.from("lessons").insert({
+  // Same silent-failure bug as addModule had — surface write errors instead of
+  // reporting success for a lesson that was never persisted.
+  const { error } = await supabase.from("lessons").insert({
     module_id: moduleId,
     title: input.title.trim(),
     video_url: input.video_url.trim() || null,
@@ -159,6 +174,10 @@ export async function addLesson(
     is_preview: input.is_preview,
     sort_order: count ?? 0,
   });
+  if (error) {
+    console.error("addLesson: insert failed", error);
+    return { error: "Could not add the lesson. Please try again." };
+  }
   revalidatePath(`/admin/programs/${programId}/edit`);
   return {};
 }

@@ -23,6 +23,7 @@ import { LangToggle } from "@/components/shared/lang-toggle";
 import { useLanguage } from "@/components/shared/language-provider";
 import { CategoryIcon } from "@/components/marketing/category-icon";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,8 +55,17 @@ export function Navbar() {
   // Auth state is fetched client-side (a small dynamic "island") so the root
   // layout — and therefore public marketing pages — stay static/cacheable
   // instead of being forced dynamic by a server-side session read.
-  const [authed, setAuthed] = useState(false);
+  //
+  // Because of that the first paint genuinely does not know who you are, so this
+  // is a tri-state: "unknown" renders a neutral placeholder of the same size as
+  // the resolved control. Starting at "anonymous" would flash a "Login" button
+  // at signed-in users on every page load.
+  const [authState, setAuthState] = useState<"unknown" | "anonymous" | "authed">(
+    "unknown",
+  );
   const [role, setRole] = useState<string | null>(null);
+  const authed = authState === "authed";
+  const authUnknown = authState === "unknown";
 
   const homeForRole =
     role === "admin" ? "/admin" : role === "mentor" ? "/mentor" : "/dashboard";
@@ -76,7 +86,7 @@ export function Navbar() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!active) return;
-      setAuthed(Boolean(user));
+      setAuthState(user ? "authed" : "anonymous");
       if (!user) {
         setRole(null);
         return;
@@ -267,7 +277,12 @@ export function Navbar() {
           <ThemeToggle />
 
           {/* Notifications — live bell for signed-in users, login link otherwise */}
-          {authed ? (
+          {authUnknown ? (
+            <Skeleton
+              aria-hidden="true"
+              className="hidden size-8 rounded-full sm:block"
+            />
+          ) : authed ? (
             <div className="hidden sm:block">
               <NotificationBell />
             </div>
@@ -286,7 +301,9 @@ export function Navbar() {
           )}
 
           {/* Auth-aware profile / login */}
-          {authed ? (
+          {authUnknown ? (
+            <Skeleton aria-hidden="true" className="size-8 rounded-full" />
+          ) : authed ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -392,14 +409,18 @@ export function Navbar() {
               </ul>
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-border px-4 pt-4">
                 <LangToggle />
-                <SheetClose asChild>
-                  <Button asChild size="sm" className="rounded-full">
-                    <Link href={authed ? homeForRole : "/login"}>
-                      <User className="size-4" />
-                      {authed ? dict.nav.dashboard : dict.nav.login}
-                    </Link>
-                  </Button>
-                </SheetClose>
+                {authUnknown ? (
+                  <Skeleton aria-hidden="true" className="h-7 w-28 rounded-full" />
+                ) : (
+                  <SheetClose asChild>
+                    <Button asChild size="sm" className="rounded-full">
+                      <Link href={authed ? homeForRole : "/login"}>
+                        <User className="size-4" />
+                        {authed ? dict.nav.dashboard : dict.nav.login}
+                      </Link>
+                    </Button>
+                  </SheetClose>
+                )}
               </div>
             </SheetContent>
           </Sheet>

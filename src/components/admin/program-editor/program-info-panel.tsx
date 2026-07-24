@@ -127,6 +127,11 @@ export function ProgramInfoPanel({
     (m) => !assignedMentors.some((a) => a.mentor_id === m.id),
   );
 
+  // effectivePriceBDT() only applies discount_bdt when 0 < discount < price;
+  // anything else is silently dropped back to the full price. Warn instead of
+  // letting the admin believe a discount is live when it isn't.
+  const discountIgnored = info.discount_bdt > 0 && info.discount_bdt >= info.price_bdt;
+
   return (
     <div className="space-y-6">
       {/* ---- Program Information ---- */}
@@ -262,7 +267,7 @@ export function ProgramInfoPanel({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label htmlFor="prog-price">Price (BDT)</Label>
+            <Label htmlFor="prog-price">Regular price (BDT)</Label>
             <Input
               id="prog-price"
               type="number"
@@ -272,14 +277,30 @@ export function ProgramInfoPanel({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="prog-discount">Discount (BDT)</Label>
+            {/* Label used to read "Discount (BDT)", which reads as amount-off.
+                discount_bdt is the FINAL price (see effectivePriceBDT), so an
+                admin entering "500" meaning "৳500 off" a ৳5,000 course sold it
+                for ৳500. Same wording as ProgramForm now. */}
+            <Label htmlFor="prog-discount">Discounted price (BDT)</Label>
             <Input
               id="prog-discount"
               type="number"
               min={0}
               value={info.discount_bdt}
               onChange={(e) => onPatchInfo({ discount_bdt: Number(e.target.value) || 0 })}
+              aria-describedby="prog-discount-help"
+              aria-invalid={discountIgnored || undefined}
             />
+            <p id="prog-discount-help" className="text-xs text-muted-foreground">
+              The price students actually pay. Must be lower than the regular price.
+              Leave 0 for no discount.
+            </p>
+            {discountIgnored ? (
+              <p role="alert" className="text-xs font-medium text-warning">
+                Not lower than the regular price — it will be ignored and students
+                would still pay ৳{info.price_bdt.toLocaleString("en-US")}.
+              </p>
+            ) : null}
           </div>
         </div>
 

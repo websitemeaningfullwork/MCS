@@ -11,6 +11,7 @@ import {
   formatSlotLabel,
   toMinutes,
   todayInDhaka,
+  isSlotPast,
   type MentorAvailability,
 } from "./slots";
 import {
@@ -86,15 +87,68 @@ function maxPerDay(a: MentorAvailability | null | undefined): number | null {
 }
 
 /**
+ * Live (non-cancelled) bookings a mentor already holds on a date, read with the
+ * service role. `excludeId` skips the appointment being moved so a reschedule
+ * never counts itself against the mentor's own daily cap.
+ */
+async function mentorDayBookings(
+  mentorId: string,
+  dateISO: string,
+  excludeId?: string,
+): Promise<{ id: string; start_time: string }[]> {
+  const admin = createAdminClient();
+  let query = admin
+    .from("appointments")
+    .select("id, start_time")
+    .eq("mentor_id", mentorId)
+    .eq("appointment_date", dateISO)
+    .neq("status", "cancelled");
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query;
+  return data ?? [];
+}
+
+const PAST_SLOT_ERROR = "That time has already passed. Please pick another slot.";
+const DAY_FULL_ERROR =
+  "That mentor is fully booked on this date. Please pick another day or mentor.";
+
+/**
+ * The slot readers below are exported server actions, i.e. POST-able endpoints
+ * by anyone who knows the action id — and they fan out to service-role reads.
+ * Gate them on a session (the whole /appointments route already redirects
+ * anonymous users to /login, so no legitimate flow calls these logged out) and
+ * throttle them, so nobody can enumerate every mentor's availability + pricing
+ * or drive service-role load anonymously.
+ */
+async function requireSlotReader(scope: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Please log in to see available times." };
+  if (!(await rateLimitByIp(`${scope}:${user.id}`, 40, 60_000))) {
+    return { error: "Too many requests. Please slow down and try again." };
+  }
+  return {};
+}
+
+/**
  * Union of slot times any active mentor offers on a date. A time is `available`
- * if at least one mentor still has it free, otherwise `booked`. Past dates yield
- * nothing.
+ * if at least one mentor still has it free, otherwise `booked`. Past dates — and
+ * on today, times that have already started — yield nothing.
  */
 export async function getDaySlots(dateISO: string): Promise<{ slots: DaySlot[]; error?: string }> {
+  const gate = await requireSlotReader("appointment-slots");
+  if (gate.error) return { slots: [], error: gate.error };
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) return { slots: [], error: "Invalid date." };
   if (dateISO < todayInDhaka()) return { slots: [] };
 
   const [mentors, booked] = await Promise.all([loadActiveMentors(), bookedByMentor(dateISO)]);
+
+  // One clock reading for the whole response, so a request that straddles a
+  // minute boundary cannot return a self-inconsistent slot list.
+  const now = new Date();
 
   // time -> { offering, free }
   const agg = new Map<string, { offering: number; free: number }>();
@@ -104,6 +158,9 @@ export async function getDaySlots(dateISO: string): Promise<{ slots: DaySlot[]; 
     const cap = maxPerDay(m.availability);
     const dayFull = cap !== null && taken.size >= cap;
     for (const s of slots) {
+      // On the current day, drop slots whose start has already passed (or is
+      // inside the lead-time window) instead of offering them as "available".
+      if (isSlotPast(dateISO, s.start, now)) continue;
       const entry = agg.get(s.start) ?? { offering: 0, free: 0 };
       entry.offering += 1;
       if (!dayFull && !taken.has(s.start)) entry.free += 1;
@@ -127,9 +184,14 @@ export async function getMentorsForSlot(
   dateISO: string,
   time: string,
 ): Promise<{ mentors: MentorCard[]; error?: string }> {
+  const gate = await requireSlotReader("appointment-mentors");
+  if (gate.error) return { mentors: [], error: gate.error };
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !/^\d{2}:\d{2}$/.test(time)) {
     return { mentors: [], error: "Invalid slot." };
   }
+  if (isSlotPast(dateISO, time)) return { mentors: [], error: PAST_SLOT_ERROR };
+
   const [mentors, booked] = await Promise.all([loadActiveMentors(), bookedByMentor(dateISO)]);
 
   const available = mentors.filter((m) => {
@@ -179,6 +241,10 @@ export async function createAppointment(
   }
 
   if (v.date < todayInDhaka()) return { error: "Please choose a date in the future." };
+  // The UI hides started slots, but the UI is not the control: re-check the
+  // slot's TIME against the Dhaka clock so a direct action call can't book
+  // this morning's 09:00 at 15:00.
+  if (isSlotPast(v.date, v.start_time)) return { error: PAST_SLOT_ERROR };
 
   // Mentor must be active + expose the slot (public_mentors is active-only).
   const { data: mentor } = await supabase
@@ -196,17 +262,16 @@ export async function createAppointment(
   const slot = slots.find((s) => s.start === v.start_time);
   if (!slot) return { error: "That time is no longer offered. Please pick another slot." };
 
-  // Pre-check the slot is free (the unique index is the real guard).
-  const admin = createAdminClient();
-  const { data: clash } = await admin
-    .from("appointments")
-    .select("id")
-    .eq("mentor_id", v.mentor_id)
-    .eq("appointment_date", v.date)
-    .eq("start_time", v.start_time)
-    .neq("status", "cancelled")
-    .maybeSingle();
-  if (clash) return { error: "Sorry, that slot was just booked. Please choose another." };
+  // One read serves both guards: the slot must be free (the unique index is the
+  // real guard for that) AND the mentor must be under their `max_per_day` cap.
+  // The cap was previously only honoured when building the slot list, which made
+  // it a UI-only rule that a direct server-action call sailed straight past.
+  const dayBookings = await mentorDayBookings(v.mentor_id, v.date);
+  if (dayBookings.some((b) => b.start_time === v.start_time)) {
+    return { error: "Sorry, that slot was just booked. Please choose another." };
+  }
+  const cap = maxPerDay(mentor.availability as unknown as MentorAvailability);
+  if (cap !== null && dayBookings.length >= cap) return { error: DAY_FULL_ERROR };
 
   const duration = mentor.session_duration && mentor.session_duration > 0
     ? mentor.session_duration
@@ -295,6 +360,15 @@ export async function submitAppointmentPayment(
     })
     .eq("id", v.appointment_id);
   if (error) {
+    // The active transaction-id unique index on appointments (migration 014) is
+    // the common cause: the same bKash TrxID cannot back two bookings. Mirror
+    // the wording of submitManualPayment so the two payment flows read alike.
+    if ((error as { code?: string }).code === "23505") {
+      return {
+        error:
+          "That transaction ID has already been submitted. Check your appointments, or use the correct bKash TrxID.",
+      };
+    }
     console.error("submitAppointmentPayment: update failed", error);
     return { error: "Could not submit your payment. Please try again." };
   }
@@ -410,28 +484,26 @@ export async function getRescheduleSlots(
     .select("availability, session_duration")
     .eq("id", appt.mentor_id)
     .maybeSingle();
-  const allSlots = generateMentorSlots(
-    (mentor?.availability ?? null) as unknown as MentorAvailability,
-    mentor?.session_duration ?? null,
-    dateISO,
-  );
+  const availability = (mentor?.availability ?? null) as unknown as MentorAvailability;
+  const allSlots = generateMentorSlots(availability, mentor?.session_duration ?? null, dateISO);
 
-  const admin = createAdminClient();
-  const { data: booked } = await admin
-    .from("appointments")
-    .select("start_time")
-    .eq("mentor_id", appt.mentor_id)
-    .eq("appointment_date", dateISO)
-    .neq("status", "cancelled")
-    .neq("id", appointmentId);
-  const taken = new Set((booked ?? []).map((b) => b.start_time));
+  // Excluding this appointment: it is the one moving, so it must not block its
+  // own target slot nor count against the mentor's daily cap.
+  const dayBookings = await mentorDayBookings(appt.mentor_id, dateISO, appointmentId);
+  const taken = new Set(dayBookings.map((b) => b.start_time));
+  const cap = maxPerDay(availability);
+  const dayFull = cap !== null && dayBookings.length >= cap;
+  const now = new Date();
 
   return {
-    slots: allSlots.map((s) => ({
-      time: s.start,
-      label: formatSlotLabel(s.start),
-      status: taken.has(s.start) ? "booked" : "available",
-    })),
+    slots: allSlots
+      // Same today-rule as getDaySlots: never offer a slot that has started.
+      .filter((s) => !isSlotPast(dateISO, s.start, now))
+      .map((s) => ({
+        time: s.start,
+        label: formatSlotLabel(s.start),
+        status: dayFull || taken.has(s.start) ? "booked" : "available",
+      })),
   };
 }
 
@@ -445,6 +517,9 @@ export async function rescheduleAppointment(
     return { error: "Choose a valid date and time." };
   }
   if (date < todayInDhaka()) return { error: "Choose a future date." };
+  // Same server-side clock rule as createAppointment — a reschedule must not be
+  // a back door into a slot that has already started today.
+  if (isSlotPast(date, time)) return { error: PAST_SLOT_ERROR };
 
   const supabase = await createClient();
   const {
@@ -454,7 +529,9 @@ export async function rescheduleAppointment(
 
   const { data: appt } = await supabase
     .from("appointments")
-    .select("id, user_id, mentor_id, status")
+    .select(
+      "id, user_id, mentor_id, status, payment_status, appointment_date, start_time, details",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!appt || appt.user_id !== user.id) return { error: "Appointment not found." };
@@ -468,40 +545,79 @@ export async function rescheduleAppointment(
     .select("availability, session_duration")
     .eq("id", appt.mentor_id)
     .maybeSingle();
-  const slots = generateMentorSlots(
-    (mentor?.availability ?? null) as unknown as MentorAvailability,
-    mentor?.session_duration ?? null,
-    date,
-  );
+  const availability = (mentor?.availability ?? null) as unknown as MentorAvailability;
+  const slots = generateMentorSlots(availability, mentor?.session_duration ?? null, date);
   const slot = slots.find((s) => s.start === time);
   if (!slot) return { error: "That mentor isn't available then. Pick another slot." };
 
-  const admin = createAdminClient();
-  const { data: clash } = await admin
-    .from("appointments")
-    .select("id")
-    .eq("mentor_id", appt.mentor_id)
-    .eq("appointment_date", date)
-    .eq("start_time", time)
-    .neq("status", "cancelled")
-    .neq("id", id)
-    .maybeSingle();
-  if (clash) return { error: "That slot is taken. Please choose another." };
+  // Clash + daily cap in one read. `id` is excluded so a same-day time change
+  // does not count the appointment against its own mentor's cap.
+  const dayBookings = await mentorDayBookings(appt.mentor_id, date, id);
+  if (dayBookings.some((b) => b.start_time === time)) {
+    return { error: "That slot is taken. Please choose another." };
+  }
+  const cap = maxPerDay(availability);
+  if (cap !== null && dayBookings.length >= cap) return { error: DAY_FULL_ERROR };
 
-  const { error } = await supabase
-    .from("appointments")
-    .update({
-      appointment_date: date,
-      start_time: time,
-      end_time: slot.end,
-      status: "rescheduled",
-    })
-    .eq("id", id);
+  /**
+   * WHY the status is conditional:
+   *
+   * Unconditionally stamping 'rescheduled' silently demoted a paid + confirmed
+   * booking out of the `confirmed` set that the upcoming-session views filter
+   * on, and there is no self-service way back — only an admin can restore
+   * 'confirmed' (the `protect_appointments` trigger from migration 013 raises
+   * "Not allowed to set this appointment status" if a student tries).
+   *
+   * So: an already-confirmed booking keeps its status and only moves in time.
+   * Omitting `status` from the patch leaves `new.status = old.status`, which is
+   * NOT "distinct from" the old value, so the trigger's privileged-transition
+   * guard never fires — writing `status: "confirmed"` explicitly would be the
+   * same value but is the safer thing to simply not send. 'rescheduled' stays
+   * the correct signal for bookings that were still pending (nothing to lose:
+   * they were not on anyone's confirmed calendar yet).
+   *
+   * The mentor and the admins are told separately when a *confirmed* session
+   * moves, because that one is already on someone's calendar.
+   */
+  const wasConfirmed = appt.status === "confirmed";
+  const patch = {
+    appointment_date: date,
+    start_time: time,
+    end_time: slot.end,
+    ...(wasConfirmed ? {} : { status: "rescheduled" }),
+  };
+
+  const { error } = await supabase.from("appointments").update(patch).eq("id", id);
   if (error) {
     if ((error as { code?: string }).code === "23505") {
       return { error: "That slot is taken. Please choose another." };
     }
+    console.error("rescheduleAppointment: update failed", error);
     return { error: "Could not reschedule the appointment." };
+  }
+
+  if (wasConfirmed) {
+    const details = (appt.details ?? {}) as Record<string, unknown>;
+    const studentName = String(details.full_name ?? "A student");
+    const from = `${appt.appointment_date} ${appt.start_time}`;
+    const to = `${date} ${time}`;
+    const paidNote = appt.payment_status === "paid" ? " (already paid)" : "";
+    await notify([
+      {
+        user_id: appt.mentor_id,
+        role: "mentor",
+        type: "appointment_rescheduled",
+        title: "Confirmed session moved",
+        body: `${studentName} moved the confirmed ${from} session to ${to}.`,
+        payload: { appointment_id: appt.id },
+      },
+      adminNotification(
+        "appointment_rescheduled",
+        "Confirmed appointment rescheduled",
+        `${studentName} moved a confirmed${paidNote} session from ${from} to ${to}.`,
+        { appointment_id: appt.id },
+      ),
+    ]);
   }
 
   revalidatePath("/dashboard/appointments");

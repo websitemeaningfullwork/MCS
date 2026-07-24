@@ -37,6 +37,19 @@ const COURSE_BENEFITS = [
   "Future Updates",
 ] as const;
 
+/**
+ * A downloadable resource is not a course — it has no classes, no mentor and no
+ * certificate. Only claim what the product actually delivers: a file granted on
+ * payment approval and re-downloadable from the dashboard forever.
+ */
+const RESOURCE_BENEFITS = [
+  "Downloadable file — yours to keep",
+  "Re-download anytime from your dashboard",
+  "Read on phone, tablet, or computer",
+  "Access as soon as your payment is verified",
+] as const;
+
+/** Course-only extras — deliberately not offered with a standalone resource. */
 const BONUS_ITEMS = [
   "Exclusive Study Materials",
   "Ready-to-use Templates",
@@ -56,7 +69,10 @@ export default async function CheckoutPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/checkout?type=${type}%26id=${id}`);
+  if (!user) {
+    const next = `/checkout?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
 
   // Load the item.
   let title = "";
@@ -100,6 +116,9 @@ export default async function CheckoutPage({
     basePrice = data.price_bdt ?? 0;
     backHref = `/resources/${data.slug}`;
   }
+
+  const isProgram = type === "program";
+  const benefits = isProgram ? COURSE_BENEFITS : RESOURCE_BENEFITS;
 
   const price = effectivePriceBDT(basePrice, discount);
   const showDiscount = hasDiscount(basePrice, discount);
@@ -148,7 +167,7 @@ export default async function CheckoutPage({
         <>
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
             {/* ============================================================
-                LEFT COLUMN — everything about the course
+                LEFT COLUMN — everything about the item being bought
                 ============================================================ */}
             <div className="space-y-6">
               <OrderSummaryCard
@@ -163,10 +182,12 @@ export default async function CheckoutPage({
               {/* What you will get */}
               <section className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">
                 <h2 className="font-semibold text-foreground">
-                  What you will get in this course
+                  {isProgram
+                    ? "What you will get in this course"
+                    : "What you will get with this download"}
                 </h2>
                 <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {COURSE_BENEFITS.map((benefit) => (
+                  {benefits.map((benefit) => (
                     <li
                       key={benefit}
                       className="flex items-center gap-2.5 text-sm text-foreground"
@@ -180,28 +201,30 @@ export default async function CheckoutPage({
                 </ul>
               </section>
 
-              {/* Bonus */}
-              <section className="rounded-3xl border border-success/25 bg-success/5 p-5 shadow-card sm:p-6">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-success/15 text-success">
-                    <Gift className="size-5" />
-                  </span>
-                  <h2 className="font-semibold text-foreground">
-                    Bonus — included free
-                  </h2>
-                </div>
-                <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
-                  {BONUS_ITEMS.map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-center gap-2 text-sm text-foreground"
-                    >
-                      <Sparkles className="size-4 shrink-0 text-success" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              {/* Bonus — course purchases only; none of these ship with a resource. */}
+              {isProgram ? (
+                <section className="rounded-3xl border border-success/25 bg-success/5 p-5 shadow-card sm:p-6">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-9 items-center justify-center rounded-xl bg-success/15 text-success">
+                      <Gift className="size-5" />
+                    </span>
+                    <h2 className="font-semibold text-foreground">
+                      Bonus — included free
+                    </h2>
+                  </div>
+                  <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                    {BONUS_ITEMS.map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2 text-sm text-foreground"
+                      >
+                        <Sparkles className="size-4 shrink-0 text-success" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
               {/* Pricing breakdown */}
               <section className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">

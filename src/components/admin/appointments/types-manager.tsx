@@ -26,6 +26,7 @@ import {
   AppointmentIcon,
   APPOINTMENT_ICON_KEYS,
 } from "@/components/appointments/appointment-icon";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import {
   saveAppointmentType,
   deleteAppointmentType,
@@ -70,6 +71,7 @@ export function TypesManager({ types }: { types: ApptType[] }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [busy, start] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   function edit(t: ApptType) {
     setDraft({
@@ -111,10 +113,16 @@ export function TypesManager({ types }: { types: ApptType[] }) {
     });
   }
 
-  function remove(id: string) {
-    if (!confirm("Delete this appointment type?")) return;
+  async function remove(t: ApptType) {
+    const ok = await confirm({
+      title: `Delete “${t.name}”?`,
+      description:
+        "This appointment type will be removed from the booking wizard. This cannot be undone.",
+      confirmLabel: "Delete type",
+    });
+    if (!ok) return;
     start(async () => {
-      const res = await deleteAppointmentType(id);
+      const res = await deleteAppointmentType(t.id);
       if (res.error) toast.error(res.error);
       else {
         toast.success("Deleted.");
@@ -142,14 +150,21 @@ export function TypesManager({ types }: { types: ApptType[] }) {
                 <AppointmentIcon name={t.icon} className="size-5" />
               </span>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" onClick={() => edit(t)} aria-label="Edit">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => edit(t)}
+                  aria-label={`Edit ${t.name}`}
+                  title={`Edit ${t.name}`}
+                >
                   <Pencil className="size-4" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  onClick={() => remove(t.id)}
-                  aria-label="Delete"
+                  onClick={() => void remove(t)}
+                  aria-label={`Delete ${t.name}`}
+                  title={`Delete ${t.name}`}
                 >
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
@@ -279,6 +294,8 @@ export function TypesManager({ types }: { types: ApptType[] }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {confirmDialog}
     </div>
   );
 }

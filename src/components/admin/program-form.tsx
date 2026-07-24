@@ -65,6 +65,14 @@ export function ProgramForm({
   );
   const [loading, setLoading] = useState(false);
 
+  // `discount_bdt` is the FINAL price a student pays, not the amount taken off —
+  // effectivePriceBDT() only honours it when 0 < discount < price and silently
+  // falls back to the full price otherwise. Surface that rule instead of letting
+  // an out-of-range value disappear without a word.
+  const priceNum = Number(price) || 0;
+  const discountNum = Number(discount) || 0;
+  const discountIgnored = discountNum > 0 && discountNum >= priceNum;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -175,22 +183,36 @@ export function ProgramForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="price">Price (BDT)</Label>
+          <Label htmlFor="price">Regular price (BDT)</Label>
           <Input
             id="price"
             type="number"
+            min={0}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="discount">Discount price (BDT)</Label>
+          <Label htmlFor="discount">Discounted price (BDT)</Label>
           <Input
             id="discount"
             type="number"
+            min={0}
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
+            aria-describedby="discount-help"
+            aria-invalid={discountIgnored || undefined}
           />
+          <p id="discount-help" className="text-xs text-muted-foreground">
+            The price students actually pay. Must be lower than the regular price.
+            Leave 0 for no discount.
+          </p>
+          {discountIgnored ? (
+            <p role="alert" className="text-xs font-medium text-warning">
+              This is not lower than the regular price, so it will be ignored —
+              students would still pay ৳{priceNum.toLocaleString("en-US")}.
+            </p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <Label>Level</Label>

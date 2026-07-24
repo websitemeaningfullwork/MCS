@@ -1,15 +1,18 @@
 -- ============================================================
 -- Migration 000 — base schema + RLS (single source of truth)
 --
--- This is the FIRST migration. It creates every extension, enum, table,
--- trigger, helper function, and the row-level-security policies.
--- Migrations 001–007 then patch on top, in order. Always run the full set
--- (000 → 007).
+-- This is the FIRST migration. It creates the core extensions, enums, tables,
+-- triggers, helper functions, and the row-level-security policies. Every later
+-- migration in supabase/migrations/ patches on top, in filename order — always
+-- apply the full set, never stop partway (009–014 add site settings, the LMS,
+-- reviews, mentor management, appointments, and the attempt/payment integrity
+-- fixes; a database that stops at 008 is missing most of the product).
 --
--- Forward-safe: the policies that migrations 006/007 tighten are baked into this
+-- Forward-safe: the policies that later migrations tighten are baked into this
 -- file in their HARDENED form (or intentionally left dropped-not-recreated), so
 -- re-running 000 on an already-migrated database no longer re-opens the P0/P1
--- holes that 006/007 closed. Every statement is guarded / uses `if not exists`.
+-- holes that 006/007/014 closed. Every statement is guarded / uses
+-- `if not exists`.
 --
 -- Supersedes the standalone supabase/schema.sql + supabase/policies.sql, which
 -- are kept only for reference.
@@ -525,10 +528,17 @@ drop policy if exists "mockq: read via test" on public.mock_questions;
 drop policy if exists "mockq: admin write" on public.mock_questions;
 create policy "mockq: admin write" on public.mock_questions for all
   using (public.is_admin()) with check (public.is_admin());
+-- Superseded by migration 014 (P0): the original policy was `for all` with a
+-- check on `user_id` only, so a student could INSERT/UPDATE their own
+-- test_attempts row through the REST API with any score they liked — the
+-- server-side scoring in features/mock-tests/actions.ts was fully bypassable.
+-- Reads stay owner-scoped; writes now go through the service role only.
+-- The `drop` stays so re-running 000 removes any legacy copy instead of
+-- re-opening the hole.
 drop policy if exists "attempts: own" on public.test_attempts;
-create policy "attempts: own" on public.test_attempts for all
-  using (user_id = auth.uid() or public.is_admin())
-  with check (user_id = auth.uid());
+drop policy if exists "attempts: own or admin read" on public.test_attempts;
+create policy "attempts: own or admin read" on public.test_attempts for select
+  using (user_id = auth.uid() or public.is_admin());
 
 drop policy if exists "blog: read published or admin" on public.blog_posts;
 create policy "blog: read published or admin" on public.blog_posts for select

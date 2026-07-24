@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Check, CircleAlert, Loader2, CloudUpload } from "lucide-react";
 
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { useDebounced } from "./use-autosave";
 import { ProgramInfoPanel } from "./program-info-panel";
@@ -61,6 +62,7 @@ export function ProgramEditor({
   );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   // ---- save wrappers -------------------------------------------------------
   const save = useCallback(
@@ -189,7 +191,13 @@ export function ProgramEditor({
   }
 
   async function handleDeleteSeason(id: string) {
-    if (!confirm("Delete this season and all its classes?")) return;
+    const season = seasons.find((s) => s.id === id);
+    const confirmed = await confirm({
+      title: season ? `Delete “${season.title}”?` : "Delete this season?",
+      description: `This season and its ${season?.classes.length ?? 0} class(es) will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete season",
+    });
+    if (!confirmed) return;
     const ok = await save(() => deleteSeason(id));
     if (!ok) return;
     setSeasons((prev) => {

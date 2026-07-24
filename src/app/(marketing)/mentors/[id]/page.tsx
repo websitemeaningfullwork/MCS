@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProgramCard } from "@/components/marketing/program-card";
 import { formatBDT } from "@/lib/format";
+import { safeHref } from "@/lib/safe-url";
 import {
   WEEKDAYS,
   SESSION_DURATIONS,
@@ -290,12 +291,23 @@ function SocialLink({
   icon: "facebook" | "youtube" | "linkedin";
   label: string;
 }) {
+  // Render-time defence. These values come straight from the `mentors` table,
+  // which both admins and — via updateOwnMentorProfile — mentors themselves can
+  // write. Those write paths now enforce http(s), but rows stored before that
+  // landed could still hold `javascript:…`, which would execute in our origin
+  // on click. A URL we can't vouch for gets no link at all rather than a dead
+  // or dangerous one.
+  const safe = safeHref(href);
+  if (!safe) return null;
+
   const Icon = icon === "facebook" ? FacebookIcon : icon === "youtube" ? YoutubeIcon : LinkedinIcon;
   return (
     <a
-      href={href}
+      href={safe}
       target="_blank"
-      rel="noreferrer"
+      // noopener/noreferrer: these are third-party destinations, so deny them
+      // window.opener access and referrer leakage.
+      rel="noopener noreferrer"
       className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       <Icon className="size-4" />
