@@ -5,10 +5,10 @@ import { reportError } from "@/lib/observability";
 
 export default function GlobalError({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
   useEffect(() => {
     reportError(error, { scope: "global-error", digest: error.digest });
@@ -35,7 +35,7 @@ export default function GlobalError({
             An unexpected error occurred. Please refresh the page.
           </p>
           <button
-            onClick={reset}
+            onClick={() => unstable_retry()}
             style={{
               marginTop: "1.5rem",
               padding: "0.5rem 1.25rem",

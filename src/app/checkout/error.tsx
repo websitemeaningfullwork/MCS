@@ -4,11 +4,12 @@ import { RouteError } from "@/components/shared/route-error";
 
 export default function CheckoutError(props: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
   return (
     <RouteError
       {...props}
+      scope="checkout"
       title="Checkout error"
       description="We couldn't complete this step. Your payment was not submitted — please try again."
     />

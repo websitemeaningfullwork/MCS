@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -83,8 +83,16 @@ function iso(y: number, m: number, d: number) {
  * has no such state (and is shared with the server), so the draft is narrowed
  * back to `BookingDetails` by validation before the step advances.
  */
-type DetailsDraft = Omit<BookingDetails, "gender"> & {
+/**
+ * Step 3 while it is still being filled in. `gender` and `occupation` start
+ * empty so neither is silently answered on the student's behalf — a
+ * pre-selected value is indistinguishable from a deliberate one once it lands
+ * in the database. The shared `bookingDetailsSchema` is untouched; "" simply
+ * never passes it, and `validateDetails()` narrows back to `BookingDetails`.
+ */
+type DetailsDraft = Omit<BookingDetails, "gender" | "occupation"> & {
   gender: BookingDetails["gender"] | "";
+  occupation: string;
 };
 
 function prettyDate(dateISO: string) {
@@ -128,7 +136,7 @@ export function BookingWizard({
     whatsapp: initialProfile.phone,
     gender: "",
     age: 0, // renders as an empty field; the schema rejects it until entered
-    occupation: "Student",
+    occupation: "",
     note: "",
   });
   /** The step-3 draft after it has passed `bookingDetailsSchema`. */
@@ -175,8 +183,14 @@ export function BookingWizard({
    * have to read.
    */
   function validateDetails(): boolean {
+    // Check the unselected dropdowns first: the raw zod enum/min-length
+    // messages read like schema errors, not instructions.
     if (!details.gender) {
       toast.error("Select your gender.");
+      return false;
+    }
+    if (!details.occupation) {
+      toast.error("Select what you do.");
       return false;
     }
     const parsed = bookingDetailsSchema.safeParse(details);
@@ -362,43 +376,60 @@ export function BookingWizard({
           <StepCard title="3. Your Details" subtitle="Please provide your information">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full Name" required>
-                <Input
-                  value={details.full_name}
-                  onChange={(e) => patchDetails({ full_name: e.target.value })}
-                />
+                {(id) => (
+                  <Input
+                    id={id}
+                    autoComplete="name"
+                    value={details.full_name}
+                    onChange={(e) => patchDetails({ full_name: e.target.value })}
+                  />
+                )}
               </Field>
               <Field label="Phone Number (Active)" required>
-                <Input
-                  value={details.phone}
-                  onChange={(e) => patchDetails({ phone: e.target.value })}
-                  placeholder="+880 1712-345678"
-                />
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="tel"
+                    autoComplete="tel"
+                    value={details.phone}
+                    onChange={(e) => patchDetails({ phone: e.target.value })}
+                    placeholder="+880 1712-345678"
+                  />
+                )}
               </Field>
               <Field label="WhatsApp Number" required>
-                <Input
-                  value={details.whatsapp}
-                  onChange={(e) => patchDetails({ whatsapp: e.target.value })}
-                  placeholder="+880 1712-345678"
-                />
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="tel"
+                    value={details.whatsapp}
+                    onChange={(e) => patchDetails({ whatsapp: e.target.value })}
+                    placeholder="+880 1712-345678"
+                  />
+                )}
               </Field>
               <Field label="Age" required>
-                <Input
-                  type="number"
-                  min={10}
-                  max={100}
-                  placeholder="Your age"
-                  value={details.age || ""}
-                  onChange={(e) => patchDetails({ age: Number(e.target.value) || 0 })}
-                />
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="number"
+                    min={10}
+                    max={100}
+                    placeholder="Your age"
+                    value={details.age || ""}
+                    onChange={(e) => patchDetails({ age: Number(e.target.value) || 0 })}
+                  />
+                )}
               </Field>
               <Field label="Gender" required>
+                {(id) => (
                 <Select
                   value={details.gender}
                   onValueChange={(v) =>
                     patchDetails({ gender: v as BookingDetails["gender"] })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={id}>
                     <SelectValue placeholder="Select an option" />
                   </SelectTrigger>
                   <SelectContent>
@@ -409,14 +440,16 @@ export function BookingWizard({
                     ))}
                   </SelectContent>
                 </Select>
+                )}
               </Field>
               <Field label="You are a" required>
+                {(id) => (
                 <Select
                   value={details.occupation}
                   onValueChange={(v) => patchDetails({ occupation: v })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger id={id}>
+                    <SelectValue placeholder="Select an option" />
                   </SelectTrigger>
                   <SelectContent>
                     {OCCUPATIONS.map((o) => (
@@ -426,6 +459,7 @@ export function BookingWizard({
                     ))}
                   </SelectContent>
                 </Select>
+                )}
               </Field>
             </div>
             <div className="mt-4 space-y-2">
@@ -605,6 +639,16 @@ function WizardNav({
   );
 }
 
+/**
+ * Labelled form row.
+ *
+ * `children` is a render prop rather than a plain node so the generated id can
+ * be threaded onto the actual control. Without it the `<Label>` here had no
+ * `htmlFor` and did not wrap its input, which left every field in step 3 with
+ * no programmatic label at all — a screen reader announced them as bare,
+ * unnamed edit boxes and comboboxes. Radix's `SelectTrigger` accepts `id` and
+ * renders a real button, so `htmlFor` resolves for the selects too.
+ */
 function Field({
   label,
   required,
@@ -612,14 +656,15 @@ function Field({
 }: {
   label: string;
   required?: boolean;
-  children: React.ReactNode;
+  children: (id: string) => React.ReactNode;
 }) {
+  const id = useId();
   return (
     <div className="space-y-2">
-      <Label>
+      <Label htmlFor={id}>
         {label} {required ? <span className="text-destructive">*</span> : null}
       </Label>
-      {children}
+      {children(id)}
     </div>
   );
 }
