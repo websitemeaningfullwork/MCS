@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/admin-guard";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { ProgramEditor } from "@/components/admin/program-editor/program-editor";
 import type {
   AssignedMentor,
@@ -160,7 +161,11 @@ export default async function EditProgramPage({
         module_id: (l.module_id as string) ?? m.id,
         title: l.title as string,
         video_url: (l.video_url as string) ?? null,
-        overview_html: (l.overview_html as string) ?? null,
+        // Sanitize on read for the same reason the student-facing learn route
+        // does: the editor assigns this straight to `ref.current.innerHTML`,
+        // so a row written before write-time sanitization landed would be an
+        // XSS sink aimed at the admin opening it.
+        overview_html: sanitizeRichText(l.overview_html as string | null) || null,
         thumbnail_url: (l.thumbnail_url as string) ?? null,
         admin_notes: (l.admin_notes as string) ?? null,
         status: ((l.status as string) ?? "published") as ClassItem["status"],

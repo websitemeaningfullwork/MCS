@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Stars } from "@/components/reviews/stars";
 import { StarInput } from "@/components/reviews/star-input";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { updateOwnReview, deleteOwnReview } from "@/features/reviews/actions";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ export function MyReviews({ rows }: { rows: MyReviewRow[] }) {
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [pending, startTransition] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   function startEdit(row: MyReviewRow) {
     setEditingId(row.id);
@@ -61,10 +63,15 @@ export function MyReviews({ rows }: { rows: MyReviewRow[] }) {
     });
   }
 
-  function remove(id: string) {
-    if (!confirm("Delete this review?")) return;
+  async function remove(row: MyReviewRow) {
+    const ok = await confirm({
+      title: "Delete this review?",
+      description: `Your review of ${row.programTitle} will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete review",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const res = await deleteOwnReview(id);
+      const res = await deleteOwnReview(row.id);
       if (res.error) {
         toast.error(res.error);
         return;
@@ -75,85 +82,88 @@ export function MyReviews({ rows }: { rows: MyReviewRow[] }) {
   }
 
   return (
-    <ul className="space-y-3">
-      {rows.map((r) => {
-        const editing = editingId === r.id;
-        return (
-          <li key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-card">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-medium text-foreground">{r.programTitle}</p>
-                <p className="text-xs capitalize text-muted-foreground">
-                  {r.scope} · {r.target}
-                </p>
+    <>
+      <ul className="space-y-3">
+        {rows.map((r) => {
+          const editing = editingId === r.id;
+          return (
+            <li key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-card">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">{r.programTitle}</p>
+                  <p className="text-xs capitalize text-muted-foreground">
+                    {r.scope} · {r.target}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+                    STATUS_STYLE[r.status] ?? "bg-secondary text-muted-foreground",
+                  )}
+                >
+                  {r.status}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-                  STATUS_STYLE[r.status] ?? "bg-secondary text-muted-foreground",
-                )}
-              >
-                {r.status}
-              </span>
-            </div>
 
-            {editing ? (
-              <div className="mt-4 space-y-3">
-                <StarInput value={rating} onChange={setRating} disabled={pending} size="md" />
-                <Textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={3}
-                  placeholder="Update your review (optional)…"
-                  disabled={pending}
-                  className="text-sm"
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => save(r.id)} disabled={pending}>
-                    {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Save changes
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditingId(null)}
+              {editing ? (
+                <div className="mt-4 space-y-3">
+                  <StarInput value={rating} onChange={setRating} disabled={pending} size="md" />
+                  <Textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={3}
+                    placeholder="Update your review (optional)…"
                     disabled={pending}
-                  >
-                    <X className="size-4" />
-                    Cancel
-                  </Button>
+                    className="text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => save(r.id)} disabled={pending}>
+                      {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Save changes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingId(null)}
+                      disabled={pending}
+                    >
+                      <X className="size-4" />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="mt-3 flex items-center gap-2">
-                  <Stars rating={r.rating} size="sm" />
-                  <span className="text-xs text-muted-foreground">{timeAgo(r.createdAt)}</span>
-                </div>
-                {r.body ? (
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{r.body}</p>
-                ) : null}
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
-                    <Pencil className="size-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => remove(r.id)}
-                    disabled={pending}
-                  >
-                    <Trash2 className="size-4" />
-                    Delete
-                  </Button>
-                </div>
-              </>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+              ) : (
+                <>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Stars rating={r.rating} size="sm" />
+                    <span className="text-xs text-muted-foreground">{timeAgo(r.createdAt)}</span>
+                  </div>
+                  {r.body ? (
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{r.body}</p>
+                  ) : null}
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
+                      <Pencil className="size-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => void remove(r)}
+                      disabled={pending}
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {confirmDialog}
+    </>
   );
 }

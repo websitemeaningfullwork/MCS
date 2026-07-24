@@ -76,6 +76,17 @@ function iso(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+/**
+ * Step-3 working state. Gender is widened to allow "" because the wizard must be
+ * able to represent "not answered yet" — pre-selecting a gender silently writes
+ * a wrong value for anyone who does not notice the field. `bookingDetailsSchema`
+ * has no such state (and is shared with the server), so the draft is narrowed
+ * back to `BookingDetails` by validation before the step advances.
+ */
+type DetailsDraft = Omit<BookingDetails, "gender"> & {
+  gender: BookingDetails["gender"] | "";
+};
+
 function prettyDate(dateISO: string) {
   const [y, m, d] = dateISO.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -110,16 +121,24 @@ export function BookingWizard({
   const [slots, setSlots] = useState<DaySlot[]>([]);
   const [loadingSlots, startSlots] = useTransition();
 
-  // Step 3
-  const [details, setDetails] = useState<BookingDetails>({
+  // Step 3 — no pre-filled gender or age; both must be answered deliberately.
+  const [details, setDetails] = useState<DetailsDraft>({
     full_name: initialProfile.full_name,
     phone: initialProfile.phone,
     whatsapp: initialProfile.phone,
-    gender: "male",
-    age: 20,
+    gender: "",
+    age: 0, // renders as an empty field; the schema rejects it until entered
     occupation: "Student",
     note: "",
   });
+  /** The step-3 draft after it has passed `bookingDetailsSchema`. */
+  const [validDetails, setValidDetails] = useState<BookingDetails | null>(null);
+
+  /** Any edit invalidates the last validated snapshot, so it can never go stale. */
+  function patchDetails(patch: Partial<DetailsDraft>) {
+    setDetails((d) => ({ ...d, ...patch }));
+    setValidDetails(null);
+  }
 
   // Step 4
   const [mentors, setMentors] = useState<MentorCard[]>([]);
@@ -149,17 +168,33 @@ export function BookingWizard({
     });
   }
 
+  /**
+   * Narrows the step-3 draft to a valid `BookingDetails` and stashes it, so the
+   * final submit can never send a half-filled payload. Unanswered gender is
+   * checked first — the raw zod enum error is not a sentence a person should
+   * have to read.
+   */
   function validateDetails(): boolean {
+    if (!details.gender) {
+      toast.error("Select your gender.");
+      return false;
+    }
     const parsed = bookingDetailsSchema.safeParse(details);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Please complete your details.");
       return false;
     }
+    setValidDetails(parsed.data);
     return true;
   }
 
   async function submit() {
     if (!selectedType || !date || !time || !selectedMentor) return;
+    if (!validDetails) {
+      toast.error("Please complete your details.");
+      setStep(3);
+      return;
+    }
     setSubmitting(true);
     const res = await createAppointment({
       type_id: selectedType.id,
@@ -168,7 +203,7 @@ export function BookingWizard({
       mentor_id: selectedMentor.id,
       date,
       start_time: time,
-      details,
+      details: validDetails,
     });
     setSubmitting(false);
     if (res.error) {
@@ -329,20 +364,20 @@ export function BookingWizard({
               <Field label="Full Name" required>
                 <Input
                   value={details.full_name}
-                  onChange={(e) => setDetails((d) => ({ ...d, full_name: e.target.value }))}
+                  onChange={(e) => patchDetails({ full_name: e.target.value })}
                 />
               </Field>
               <Field label="Phone Number (Active)" required>
                 <Input
                   value={details.phone}
-                  onChange={(e) => setDetails((d) => ({ ...d, phone: e.target.value }))}
+                  onChange={(e) => patchDetails({ phone: e.target.value })}
                   placeholder="+880 1712-345678"
                 />
               </Field>
               <Field label="WhatsApp Number" required>
                 <Input
                   value={details.whatsapp}
-                  onChange={(e) => setDetails((d) => ({ ...d, whatsapp: e.target.value }))}
+                  onChange={(e) => patchDetails({ whatsapp: e.target.value })}
                   placeholder="+880 1712-345678"
                 />
               </Field>
@@ -351,21 +386,20 @@ export function BookingWizard({
                   type="number"
                   min={10}
                   max={100}
+                  placeholder="Your age"
                   value={details.age || ""}
-                  onChange={(e) =>
-                    setDetails((d) => ({ ...d, age: Number(e.target.value) || 0 }))
-                  }
+                  onChange={(e) => patchDetails({ age: Number(e.target.value) || 0 })}
                 />
               </Field>
               <Field label="Gender" required>
                 <Select
                   value={details.gender}
                   onValueChange={(v) =>
-                    setDetails((d) => ({ ...d, gender: v as BookingDetails["gender"] }))
+                    patchDetails({ gender: v as BookingDetails["gender"] })
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select an option" />
                   </SelectTrigger>
                   <SelectContent>
                     {GENDERS.map((g) => (
@@ -379,7 +413,7 @@ export function BookingWizard({
               <Field label="You are a" required>
                 <Select
                   value={details.occupation}
-                  onValueChange={(v) => setDetails((d) => ({ ...d, occupation: v }))}
+                  onValueChange={(v) => patchDetails({ occupation: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -400,7 +434,7 @@ export function BookingWizard({
                 id="note"
                 rows={3}
                 value={details.note}
-                onChange={(e) => setDetails((d) => ({ ...d, note: e.target.value }))}
+                onChange={(e) => patchDetails({ note: e.target.value })}
                 placeholder="I want to discuss about my career confusion and future plan."
               />
             </div>

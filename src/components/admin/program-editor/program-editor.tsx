@@ -241,7 +241,14 @@ export function ProgramEditor({
   }
 
   async function handleDeleteClass(id: string) {
-    if (!confirm("Delete this class?")) return;
+    const cls = seasons.flatMap((s) => s.classes).find((c) => c.id === id);
+    const confirmed = await confirm({
+      title: cls ? `Delete “${cls.title}”?` : "Delete this class?",
+      description:
+        "The class and its resources and quiz questions will be permanently deleted. This cannot be undone.",
+      confirmLabel: "Delete class",
+    });
+    if (!confirmed) return;
     const ok = await save(() => deleteClass(id));
     if (!ok) return;
     setSeasons((prev) =>
@@ -437,6 +444,8 @@ export function ProgramEditor({
           </span>
         ) : null}
       </div>
+
+      {confirmDialog}
     </div>
   );
 }

@@ -35,6 +35,21 @@ const COLOR_VALUES = [
   /^[a-z]+$/i, // CSS colour keywords: yellow, transparent, currentColor…
 ];
 
+/**
+ * The editor's align buttons use `document.execCommand("justifyLeft|Center|
+ * Right")`, which browsers serialise as `text-align` on the block element. Only
+ * these four keywords are accepted — `text-align` carries no injection surface,
+ * unlike free-form `style`.
+ */
+const TEXT_ALIGN_VALUES = [/^(?:left|right|center|justify)$/i];
+
+/** Block tags that may carry `text-align` (see TEXT_ALIGN_VALUES). */
+const ALIGNABLE_TAGS = ["p", "div", "h2", "h3", "h4", "li", "blockquote"] as const;
+
+const alignableStyles = Object.fromEntries(
+  ALIGNABLE_TAGS.map((tag) => [tag, { "text-align": TEXT_ALIGN_VALUES }]),
+);
+
 const OPTIONS: IOptions = {
   /**
    * Strict presentational allowlist. Everything else (script, iframe, object,
@@ -44,6 +59,11 @@ const OPTIONS: IOptions = {
    */
   allowedTags: [
     "p",
+    // Chrome's contentEditable wraps lines in <div> and the align buttons emit
+    // their `text-align` on it. Without `div` here the editor's own output is
+    // silently mangled on save — a plain container carries no risk of its own,
+    // the danger was always in attributes, which stay allowlisted below.
+    "div",
     "br",
     "strong",
     "b",
@@ -76,6 +96,8 @@ const OPTIONS: IOptions = {
     a: ["href", "title", "target", "rel"],
     span: ["style"],
     mark: ["style"],
+    // `style` here only ever survives as `text-align` — see allowedStyles.
+    ...Object.fromEntries(ALIGNABLE_TAGS.map((tag) => [tag, ["style"]])),
   },
 
   /**
@@ -88,6 +110,8 @@ const OPTIONS: IOptions = {
   allowedStyles: {
     span: { "background-color": COLOR_VALUES, color: COLOR_VALUES },
     mark: { "background-color": COLOR_VALUES, color: COLOR_VALUES },
+    // Block tags keep alignment only. Any other declaration is dropped.
+    ...alignableStyles,
   },
 
   /**

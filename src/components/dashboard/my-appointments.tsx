@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/marketing/empty-state";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import {
   AppointmentStatusBadge,
   PaymentStatusBadge,
@@ -123,14 +124,21 @@ function List({
 function AppointmentCard({ appt, today }: { appt: MyAppointment; today: string }) {
   const router = useRouter();
   const [busy, startBusy] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
   const details = appt.details ?? {};
   const isUpcoming =
     appt.appointment_date >= today && !["cancelled", "completed"].includes(appt.status);
   const canCancel = isUpcoming;
   const needsPayment = appt.payment_status === "unpaid";
 
-  function doCancel() {
-    if (!confirm("Cancel this appointment? This cannot be undone.")) return;
+  async function doCancel() {
+    const ok = await confirm({
+      title: "Cancel this appointment?",
+      description: `Your ${details.type_name ?? "session"} on ${appt.appointment_date} at ${formatSlotLabel(appt.start_time)} will be cancelled. This cannot be undone.`,
+      confirmLabel: "Cancel appointment",
+      cancelLabel: "Keep appointment",
+    });
+    if (!ok) return;
     startBusy(async () => {
       const res = await cancelAppointment(appt.id);
       if (res.error) toast.error(res.error);
@@ -180,12 +188,14 @@ function AppointmentCard({ appt, today }: { appt: MyAppointment; today: string }
           <RescheduleDialog appt={appt} today={today} onDone={() => router.refresh()} />
         ) : null}
         {canCancel ? (
-          <Button size="sm" variant="ghost" onClick={doCancel} disabled={busy}>
+          <Button size="sm" variant="ghost" onClick={() => void doCancel()} disabled={busy}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
             Cancel
           </Button>
         ) : null}
       </div>
+
+      {confirmDialog}
     </div>
   );
 }
