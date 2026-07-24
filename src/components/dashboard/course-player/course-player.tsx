@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { setLessonCompletion } from "@/features/learning/actions";
+import { YouTubeEmbed } from "@/components/shared/youtube-embed";
 import { CurriculumSidebar } from "./curriculum-sidebar";
-import { YouTubeEmbed } from "./youtube-embed";
 import { LessonTabs } from "./lesson-tabs";
 import type { OwnReview, PlayerLesson, PlayerSeason, PlayerTab } from "./types";
 import type { PublicReview } from "@/components/reviews/types";
@@ -187,7 +187,11 @@ export function CoursePlayer({
         </div>
 
         {/* Video */}
-        <YouTubeEmbed url={current.lesson.video_url} title={current.lesson.title} />
+        <YouTubeEmbed
+          url={current.lesson.video_url}
+          title={current.lesson.title}
+          emptyLabel="No video for this lesson yet."
+        />
 
         {/* Prev / mark / next */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-card">

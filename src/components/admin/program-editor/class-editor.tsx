@@ -35,18 +35,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/browser";
+import { youtubeThumbnail } from "@/lib/youtube";
 import { RichTextEditor } from "./rich-text-editor";
 import { ResourceManager } from "./resource-manager";
 import { QuizManager } from "./quiz-manager";
 import type { ClassItem, ClassStatus, Question, Resource, SaveFn } from "./types";
-
-function youtubeId(url: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/,
-  );
-  return m ? m[1] : null;
-}
 
 export function ClassEditor({
   cls,
@@ -72,8 +65,7 @@ export function ClassEditor({
   save: SaveFn;
 }) {
   const [uploading, setUploading] = useState(false);
-  const ytId = youtubeId(cls.video_url);
-  const thumb = cls.thumbnail_url || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
+  const thumb = cls.thumbnail_url || youtubeThumbnail(cls.video_url);
 
   async function onThumb(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

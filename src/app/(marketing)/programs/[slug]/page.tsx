@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { BookmarkButton } from "@/components/shared/bookmark-button";
+import { YouTubeEmbed } from "@/components/shared/youtube-embed";
 import { RatingSummary } from "@/components/reviews/rating-summary";
 import { ReviewCard } from "@/components/reviews/review-card";
 import { summarize, type PublicReview } from "@/components/reviews/types";
@@ -364,9 +365,16 @@ export default async function ProgramDetailPage({
         {/* Sticky price card */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="flex aspect-video items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15">
-              <CirclePlay className="size-10 text-primary/50" />
-            </div>
+            {program.preview_video_url ? (
+              <YouTubeEmbed
+                url={program.preview_video_url}
+                title={`${program.title} — preview`}
+              />
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 via-secondary to-brand-hover/15">
+                <CirclePlay className="size-10 text-primary/50" />
+              </div>
+            )}
 
             <div className="mt-5 flex items-baseline gap-2">
               <span className="text-3xl font-semibold text-foreground">
