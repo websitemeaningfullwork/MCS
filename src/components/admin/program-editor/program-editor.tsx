@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Check, CircleAlert, Loader2, CloudUpload } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { useDebounced } from "./use-autosave";
@@ -21,6 +22,7 @@ import {
   createClass,
   deleteClass,
   duplicateClass,
+  publishAllDraftClasses,
   reorderClasses,
   assignMentor,
   removeMentor,
@@ -346,8 +348,50 @@ export function ProgramEditor({
     );
   }
 
+  /**
+   * Publish every draft class in this program.
+   *
+   * Recovery for courses authored while new classes defaulted to `draft` — the
+   * buyer of such a program sees "No lessons yet" even after their payment is
+   * approved, because the player only queries published classes.
+   */
+  async function handlePublishAllDrafts() {
+    const ok = await confirm({
+      title: `Publish ${draftCount} ${draftCount === 1 ? "class" : "classes"}?`,
+      description:
+        "Every class currently saved as Draft becomes visible to enrolled students straight away. Classes set to Hidden are left as they are.",
+      confirmLabel: "Publish them",
+      // Making content visible is additive, not destructive — don't paint the
+      // confirm button red.
+      destructive: false,
+    });
+    if (!ok) return;
+
+    const res = await saveData(() => publishAllDraftClasses(info.id));
+    if (!res) return;
+    setSeasons((prev) =>
+      prev.map((s) => ({
+        ...s,
+        classes: s.classes.map((c) =>
+          c.status === "draft" ? { ...c, status: "published" as const } : c,
+        ),
+      })),
+    );
+    toast.success(
+      `${res.published} ${res.published === 1 ? "class is" : "classes are"} now visible to students.`,
+    );
+  }
+
   // ---- derived -------------------------------------------------------------
   const activeSeason = seasons.find((s) => s.id === activeSeasonId) ?? null;
+  const allClasses = seasons.flatMap((s) => s.classes);
+  const draftCount = allClasses.filter((c) => c.status === "draft").length;
+  const publishedCount = allClasses.filter((c) => c.status === "published").length;
+  // A program students can buy but cannot watch is the failure worth shouting
+  // about; a draft program with drafts inside it is just work in progress.
+  const isLive = info.status === "published";
+  const showNoContentWarning = isLive && publishedCount === 0 && allClasses.length > 0;
+  const showDraftWarning = isLive && publishedCount > 0 && draftCount > 0;
   const selectedClass =
     activeSeason?.classes.find((c) => c.id === selectedClassId) ?? null;
   const classLabel = selectedClass
@@ -372,6 +416,29 @@ export function ProgramEditor({
         </div>
         <SaveStatusPill status={status} />
       </div>
+
+      {/* Content-visibility warnings. These exist because the failure they
+          describe is otherwise invisible to the only person who can fix it:
+          an admin previewing a course sees classes in every status, so a
+          published, purchasable program with nothing visible to buyers looks
+          completely normal from in here. */}
+      {showNoContentWarning ? (
+        <ContentWarning
+          tone="destructive"
+          title="Students cannot see any of this course"
+          body={`This program is published and can be purchased, but none of its ${allClasses.length} ${allClasses.length === 1 ? "class is" : "classes are"} visible to students — so anyone who buys it lands on an empty course page.`}
+          actionLabel={draftCount > 0 ? `Publish ${draftCount} draft ${draftCount === 1 ? "class" : "classes"}` : undefined}
+          onAction={draftCount > 0 ? handlePublishAllDrafts : undefined}
+        />
+      ) : showDraftWarning ? (
+        <ContentWarning
+          tone="warning"
+          title={`${draftCount} ${draftCount === 1 ? "class is" : "classes are"} still a draft`}
+          body="Draft classes are hidden from enrolled students. Publish them when they're ready."
+          actionLabel={`Publish ${draftCount === 1 ? "it" : "them"}`}
+          onAction={handlePublishAllDrafts}
+        />
+      ) : null}
 
       {/* 3-column workspace */}
       <div className="grid gap-4 xl:grid-cols-[290px_250px_minmax(0,1fr)]">
@@ -446,6 +513,57 @@ export function ProgramEditor({
       </div>
 
       {confirmDialog}
+    </div>
+  );
+}
+
+/** Inline banner for course-visibility problems, with an optional one-click fix. */
+function ContentWarning({
+  tone,
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  tone: "destructive" | "warning";
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  const destructive = tone === "destructive";
+  return (
+    <div
+      role={destructive ? "alert" : "status"}
+      className={cn(
+        "flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between",
+        destructive
+          ? "border-destructive/30 bg-destructive/5"
+          : "border-warning/30 bg-warning/5",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <CircleAlert
+          className={cn(
+            "mt-0.5 size-5 shrink-0",
+            destructive ? "text-destructive" : "text-warning",
+          )}
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{body}</p>
+        </div>
+      </div>
+      {actionLabel && onAction ? (
+        <Button
+          size="sm"
+          variant={destructive ? "default" : "outline"}
+          onClick={onAction}
+          className="shrink-0 self-start rounded-full sm:self-auto"
+        >
+          {actionLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

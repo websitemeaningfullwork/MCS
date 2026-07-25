@@ -52,7 +52,10 @@ export function CurriculumSidebar({
         </div>
       </div>
 
-      <div className="max-h-[62vh] overflow-y-auto">
+      {/* Height is capped only from `lg` up, where this is a sticky side rail.
+          On phones the card sits in normal page flow, and a nested 62vh scroll
+          area there traps touch scrolling — let it grow and scroll with the page. */}
+      <div className="lg:max-h-[62vh] lg:overflow-y-auto">
         {seasons.map((season, si) => (
           <SeasonBlock
             key={season.id}

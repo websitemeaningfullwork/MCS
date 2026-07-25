@@ -113,23 +113,50 @@ export function CoursePlayer({
   }
 
   if (!current) {
+    // A paying student reaching this is a delivery failure, not a normal state:
+    // their payment was approved and the enrollment exists, or the learn route
+    // would have redirected them out before rendering. Previously this was a
+    // dead end — "check back soon" and a link away — which left a buyer with no
+    // way to report that they'd paid for an empty course. Give them a real
+    // route to support instead.
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center shadow-card">
-        <p className="font-semibold text-foreground">No lessons yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This program&apos;s content is being prepared. Check back soon.
+      <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-border bg-card p-6 text-center shadow-card sm:p-10">
+        <p className="font-semibold text-foreground">
+          {isAdminPreview
+            ? "No published classes in this program"
+            : "This course has no lessons available yet"}
         </p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link href="/dashboard/programs">Back to Dashboard</Link>
-        </Button>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isAdminPreview
+            ? "Every class here is still a draft or hidden, so enrolled students see nothing. Publish at least one class in the program editor."
+            : "Your enrollment is active, but the instructor hasn't published any lessons yet. If you've already paid for this course, let us know and we'll sort it out."}
+        </p>
+        <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href="/dashboard/programs">Back to Dashboard</Link>
+          </Button>
+          {!isAdminPreview ? (
+            <Button asChild className="rounded-full">
+              <Link href={`/contact?subject=${encodeURIComponent(`No lessons available in "${program.title}"`)}`}>
+                Contact support
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[330px_minmax(0,1fr)]">
-      {/* Curriculum */}
-      <aside className="lg:sticky lg:top-24 lg:self-start lg:order-none">
+      {/* Curriculum.
+          On phones this collapses into a single grid column, and it used to sit
+          FIRST in source order — so opening a lesson put a ~62vh scrolling list
+          of every class above the video, and the student had to scroll past the
+          whole curriculum to reach the thing they tapped. `order` flips it below
+          the player on small screens and restores the left rail from `lg` up
+          (where the two-column grid puts it beside the content, not above it). */}
+      <aside className="order-2 lg:order-1 lg:sticky lg:top-24 lg:self-start">
         <CurriculumSidebar
           programTitle={program.title}
           seasons={seasons}
@@ -142,7 +169,18 @@ export function CoursePlayer({
       </aside>
 
       {/* Main */}
-      <div className="min-w-0 space-y-5">
+      <div className="order-1 min-w-0 space-y-5 lg:order-2">
+        {/* Mobile-only back link. The curriculum card carries one in its header,
+            but that card now sits BELOW this column on phones, so without this
+            the only way out of a lesson is the browser back button. */}
+        <Link
+          href="/dashboard/programs"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+        >
+          <ArrowLeft className="size-4" />
+          Back to Dashboard
+        </Link>
+
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

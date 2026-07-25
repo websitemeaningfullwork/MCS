@@ -318,9 +318,24 @@ export async function createClass(
   const sort_order = count ?? 0;
   const name = title?.trim() || `Class ${sort_order + 1}`;
 
+  // Created as `published`, matching the `lessons.status` column default and
+  // the legacy admin form (`addLesson`), which never set the column at all.
+  //
+  // This used to insert `status: "draft"`, which was a silent content-delivery
+  // failure: the student course player only ever queries published classes, so
+  // an admin could author a whole course, publish the PROGRAM, sell it, approve
+  // the payment — and the buyer would land on "No lessons yet". Nothing in the
+  // editor surfaced that the classes were still drafts, and an admin previewing
+  // the course sees every status, so it never reproduced for the person who
+  // could fix it.
+  //
+  // Publishing by default is safe because the PROGRAM is the real gate: a
+  // program must be explicitly published before anyone can buy or open it, so
+  // classes drafted inside an unpublished program are already invisible.
+  // Staging an individual class is still one click away via the Status select.
   const { data, error } = await supabase
     .from("lessons")
-    .insert({ module_id: seasonId, title: name, sort_order, status: "draft" })
+    .insert({ module_id: seasonId, title: name, sort_order, status: "published" })
     .select(
       "id, module_id, title, video_url, overview_html, thumbnail_url, admin_notes, status, is_preview, duration_seconds, sort_order",
     )
@@ -331,6 +346,52 @@ export async function createClass(
   }
   touchPublic();
   return { data: normalizeClass(data) };
+}
+
+/**
+ * Publish every draft class in a program, in one call.
+ *
+ * Recovery path for courses authored while `createClass` defaulted to `draft`:
+ * those programs can be published and sold while every class stays invisible to
+ * the buyer. Fixing that one dropdown at a time is impractical on a real course,
+ * and a blanket SQL update is worse — it would also publish classes an admin
+ * deliberately staged in a program they haven't released yet.
+ *
+ * Scoped to a single program, triggered explicitly by an admin who has been
+ * shown the count. `hidden` classes are left alone: unlike `draft` (the old
+ * accidental default) hidden is only ever set deliberately.
+ */
+export async function publishAllDraftClasses(
+  programId: string,
+): Promise<Result<{ published: number }>> {
+  const supabase = await assertAdmin();
+  if (!supabase) return { error: "Not authorized." };
+
+  // The class list is reached through the program's seasons.
+  const { data: seasons, error: seasonErr } = await supabase
+    .from("modules")
+    .select("id")
+    .eq("program_id", programId);
+  if (seasonErr) {
+    console.error("publishAllDraftClasses: season lookup failed", seasonErr);
+    return { error: "Could not load this program's classes." };
+  }
+  const seasonIds = (seasons ?? []).map((s) => s.id);
+  if (!seasonIds.length) return { data: { published: 0 } };
+
+  const { data: updated, error } = await supabase
+    .from("lessons")
+    .update({ status: "published" })
+    .in("module_id", seasonIds)
+    .eq("status", "draft")
+    .select("id");
+  if (error) {
+    console.error("publishAllDraftClasses: update failed", error);
+    return { error: "Could not publish the classes. Please try again." };
+  }
+
+  touchPublic();
+  return { data: { published: (updated ?? []).length } };
 }
 
 const classPatchSchema = z.object({
@@ -441,6 +502,12 @@ export async function duplicateClass(classId: string): Promise<Result<ClassRow>>
       overview_html: src.overview_html ? sanitizeRichText(src.overview_html) : null,
       thumbnail_url: src.thumbnail_url,
       admin_notes: src.admin_notes,
+      // Intentionally draft, unlike `createClass` (which publishes by default).
+      // A duplicate starts as a byte-identical copy titled "… (Copy)", so
+      // publishing it immediately would show students two identical classes.
+      // This is safe here in a way it was NOT for createClass, because the
+      // editor now warns when a live program has unpublished classes — the
+      // draft is visible to the admin instead of silently swallowing content.
       status: "draft",
       is_preview: src.is_preview,
       duration_seconds: src.duration_seconds,

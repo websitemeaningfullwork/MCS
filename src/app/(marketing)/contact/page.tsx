@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Mail, MessageCircle, Clock } from "lucide-react";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { T } from "@/components/shared/t";
@@ -74,7 +75,11 @@ export default function ContactPage() {
           ))}
         </div>
 
-        <ContactForm />
+        {/* ContactForm reads `?subject=` via useSearchParams, which needs a
+            Suspense boundary for this page to stay statically prerendered. */}
+        <Suspense fallback={<div className="min-h-[28rem] rounded-2xl border border-border bg-card" />}>
+          <ContactForm />
+        </Suspense>
       </div>
     </div>
   );

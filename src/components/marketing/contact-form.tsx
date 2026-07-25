@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -15,13 +16,19 @@ import { contactSchema, type ContactInput } from "@/features/contact/schemas";
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);
+  // Read on the client so the contact page stays statically prerendered. Lets
+  // other surfaces hand the user here with the topic already filled in — e.g. a
+  // student whose paid course has no published lessons arrives with the course
+  // named, so support can triage without a round trip. Capped to the schema's
+  // own 150-char limit so a crafted link can't produce an unsubmittable form.
+  const presetSubject = (useSearchParams().get("subject") ?? "").slice(0, 150);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", email: "", subject: "", message: "" },
+    defaultValues: { name: "", email: "", subject: presetSubject, message: "" },
   });
 
   async function onSubmit(values: ContactInput) {
