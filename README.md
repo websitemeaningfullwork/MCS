@@ -80,9 +80,9 @@ later migration patches on top — `003`–`004` storage buckets, `006`–`008`
 security hardening and indexes, `009` site settings, `010` the LMS
 (seasons/classes/quizzes), `011` reviews, `012` mentor management, `013`
 appointments + notifications, `014` attempt/payment integrity, `015` release of
-draft classes stranded in already-sold courses. Several of those add **new
-tables**, so a database stopped at `008` is missing core feature tables and the
-app will break.
+draft classes stranded in already-sold courses, `016` program preview photo.
+Several of those add **new tables**, so a database stopped at `008` is missing
+core feature tables and the app will break.
 
 All migrations are idempotent (safe to re-run) — where a later migration
 tightens or removes a policy, the earlier file keeps the `drop policy if exists`

@@ -13,6 +13,10 @@ import {
   X,
   Star,
   UserPlus,
+  // lucide v1 dropped its brand icons, so there is no YouTube glyph — Video is
+  // the closest generic stand-in (same reason social-icons.tsx exists).
+  Video,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/browser";
+import { youtubeEmbedUrl } from "@/lib/youtube";
 import { cn } from "@/lib/utils";
 import type {
   AssignedMentor,
@@ -81,36 +86,72 @@ export function ProgramInfoPanel({
   onSetPrimary: (id: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [uploadingPreview, setUploadingPreview] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [editingSeason, setEditingSeason] = useState<string | null>(null);
   const [addingMentor, setAddingMentor] = useState(false);
   const [pickMentor, setPickMentor] = useState("");
 
-  async function onCover(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  /**
+   * Upload an image to the public `course-assets` bucket and hand back its URL.
+   * Shared by the program cover and the glimpse photo — both land in the same
+   * bucket, and both must produce a `*.supabase.co/storage/v1/object/public/…`
+   * URL because that is the only remote pattern `next/image` is configured to
+   * load (next.config.ts). Returns null when the upload failed; the caller has
+   * already been told why.
+   */
+  async function uploadImage(
+    file: File,
+    folder: "covers" | "previews",
+  ): Promise<string | null> {
     if (!file.type.startsWith("image/")) {
       toast.error("Choose an image file.");
-      return;
+      return null;
     }
-    setUploading(true);
     const supabase = createClient();
-    const path = `covers/${info.id}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+    const path = `${folder}/${info.id}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
     const { error } = await supabase.storage
       .from("course-assets")
       .upload(path, file, { upsert: false });
     if (error) {
       toast.error("Upload failed.");
-      setUploading(false);
-      return;
+      return null;
     }
     const {
       data: { publicUrl },
     } = supabase.storage.from("course-assets").getPublicUrl(path);
-    onPatchInfo({ cover_url: publicUrl }, { revalidate: true });
+    return publicUrl;
+  }
+
+  async function onCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadImage(file, "covers");
     setUploading(false);
+    if (!url) return;
+    onPatchInfo({ cover_url: url }, { revalidate: true });
     toast.success("Image updated.");
   }
+
+  async function onPreviewPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPreview(true);
+    const url = await uploadImage(file, "previews");
+    setUploadingPreview(false);
+    if (!url) return;
+    // Selecting a photo is itself the choice — an admin who uploads one and
+    // never notices the toggle would otherwise see nothing change on the site.
+    onPatchInfo({ preview_image_url: url, preview_kind: "image" }, { revalidate: true });
+    toast.success("Glimpse photo updated.");
+  }
+
+  // The public enrol card renders the trailer through youtubeEmbedUrl(), which
+  // returns null for anything that isn't a real YouTube link. Mirror that here
+  // so the admin learns it now rather than by looking at the live page.
+  const trailerUnusable =
+    info.preview_video_url.trim() !== "" && youtubeEmbedUrl(info.preview_video_url) === null;
 
   function handleSeasonDrop(targetId: string) {
     if (!dragId || dragId === targetId) return;
@@ -201,14 +242,121 @@ export function ProgramInfoPanel({
           />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="prog-trailer">YouTube Trailer Link</Label>
-          <Input
-            id="prog-trailer"
-            value={info.preview_video_url}
-            onChange={(e) => onPatchInfo({ preview_video_url: e.target.value })}
-            placeholder="https://www.youtube.com/watch?v=…"
-          />
+        {/* ---- Course Glimpse: a trailer video OR a still photo ---- */}
+        <div className="space-y-2">
+          <Label>Course Glimpse</Label>
+          <p className="text-xs text-muted-foreground">
+            Shown at the top of the enrol card on the public program page. Use a
+            trailer video, or a photo if you don&apos;t have one filmed yet.
+          </p>
+
+          {/* Toggle buttons rather than role="radiogroup": a real radio group
+              owes the user arrow-key navigation and a roving tabindex (ARIA
+              APG), and claiming the role without implementing them is worse
+              than not claiming it. Two aria-pressed buttons are correct with
+              plain Tab. */}
+          <div
+            role="group"
+            aria-label="Course glimpse type"
+            className="grid grid-cols-2 gap-1 rounded-lg bg-secondary p-1"
+          >
+            {(
+              [
+                { value: "video", label: "Video link", Icon: Video },
+                { value: "image", label: "Photo", Icon: ImageIcon },
+              ] as const
+            ).map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={info.preview_kind === value}
+                onClick={() => onPatchInfo({ preview_kind: value }, { revalidate: true })}
+                className={cn(
+                  "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  info.preview_kind === value
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {info.preview_kind === "video" ? (
+            <div className="space-y-1">
+              <Label htmlFor="prog-trailer" className="sr-only">
+                YouTube trailer link
+              </Label>
+              <Input
+                id="prog-trailer"
+                value={info.preview_video_url}
+                onChange={(e) => onPatchInfo({ preview_video_url: e.target.value })}
+                placeholder="https://www.youtube.com/watch?v=…"
+                aria-describedby="prog-trailer-help"
+                aria-invalid={trailerUnusable || undefined}
+              />
+              {trailerUnusable ? (
+                <p id="prog-trailer-help" role="alert" className="text-xs font-medium text-warning">
+                  Not a YouTube link we recognise — the enrol card will fall back
+                  to a placeholder. Paste a watch, youtu.be, shorts or embed link.
+                </p>
+              ) : (
+                <p id="prog-trailer-help" className="text-xs text-muted-foreground">
+                  YouTube only. Watch, youtu.be, shorts and embed links all work.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-secondary">
+                {info.preview_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={info.preview_image_url} alt="" className="size-full object-cover" />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
+                    No photo
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <label
+                  htmlFor="prog-preview-photo"
+                  className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary"
+                >
+                  {uploadingPreview ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Upload className="size-4" />
+                  )}
+                  {info.preview_image_url ? "Change Photo" : "Upload Photo"}
+                </label>
+                <input
+                  id="prog-preview-photo"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={onPreviewPhoto}
+                />
+                {info.preview_image_url ? (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-9 text-destructive hover:bg-destructive/10"
+                    onClick={() => onPatchInfo({ preview_image_url: null }, { revalidate: true })}
+                    aria-label="Remove glimpse photo"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Landscape (16:9) works best — it fills the same space the video
+                would. Your trailer link is kept if you switch back.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-1">

@@ -5,7 +5,7 @@
 > (`PROJECT_CONTEXT.md`, `HANDOVER.md`, and the four production-audit reports),
 > which were deleted on 2026-07-27 because they contradicted each other.
 >
-> **Last updated:** 2026-07-27 · **HEAD:** `0714773` · **Branch:** `main`
+> **Last updated:** 2026-07-27 · **HEAD:** `e1f8909` (+ uncommitted program-glimpse work) · **Branch:** `main`
 
 ---
 
@@ -149,8 +149,9 @@ self-demotion and removing the last admin) · Mentors (single-page editor: photo
 basic, contact + per-field visibility toggles, expertise/skills tags,
 professional, availability, session & pricing, socials, status) · Programs
 (3-column autosaving LMS editor: Program Info + Seasons tree + Class editor tabs
-Basic/Overview/Resources/Quiz/Notes, drag-reorder, multi-mentor, draft-class
-warning + "publish all drafts") · Resources · Blog · Live Classes · Mock Tests ·
+Basic/Overview/Resources/Quiz/Notes, drag-reorder, multi-mentor, Course Glimpse
+as either a YouTube trailer or an uploaded photo, draft-class warning +
+"publish all drafts") · Resources · Blog · Live Classes · Mock Tests ·
 Questions · Reviews (moderate, filter, CSV export) · Appointments (KPIs, all
 bookings w/ Manage dialog, calendar, mentor schedule editor, appointment types) ·
 Settings (WhatsApp FAB + payment).
@@ -199,10 +200,15 @@ the project convention.
 | 013 | `appointments` | `appointment_types` (7 seeded), `appointments`, `notifications` | ✅ |
 | 014 | `attempt_and_payment_integrity` | `test_attempts` read-only under RLS; appointment TrxID unique index | ⚠️ **unverified** |
 | 015 | `publish_orphaned_draft_classes` | releases draft classes in already-sold, fully-dark courses | ⚠️ **unverified** |
+| 016 | `program_preview_media` | `programs.preview_image_url` + `preview_kind` — enrol-card glimpse can be a photo instead of a trailer | ❌ **not applied** |
 
 **Latest verified applied: `013`** (verified live 2026-07-22 via anon PostgREST
-probes). **`014` and `015` were written on 2026-07-25/27 and their application
-has not been confirmed** — confirm before trusting anything that depends on them.
+probes). **`014`, `015` and `016` have not been confirmed applied** — `016` is
+brand new and definitely is not. Confirm before trusting anything that depends
+on them. Until `016` is applied, the program editor's Course Glimpse toggle and
+photo upload will fail to save ("Could not save the program"); every other field
+is patched independently and keeps working, and the public page falls back to
+exactly its old video-or-placeholder behaviour.
 
 **Deploy-with-code migrations** (they close reads/writes the app used to rely on
 and route them through `public_*` views or the service role): `006`, `012`, and
@@ -292,7 +298,9 @@ or every submission silently loses its history row.
 | `npx tsc --noEmit` | ✅ clean |
 | `npm run lint` | ✅ 0 errors (1 pre-existing warning: `<img>` in `opengraph-image.tsx`) |
 | `npx vitest run` | ✅ 9 files / **80 tests** pass |
-| `npm run build` | ✅ compiles in ~8s, 64 static pages generated |
+| `npm run build` | ✅ compiles in ~7s, 64 static pages generated |
+
+Re-verified after the Course Glimpse change (2026-07-27, working tree).
 
 **Rendering (from the build output):** static/ISR — `/` (5m), `/about`,
 `/community` (10m), `/live-classes` (5m), `/contact`, legal pages, auth pages,
@@ -312,6 +320,8 @@ code on 2026-07-27 — this is the live list, not a wishlist.
 
 ### Blocking / operational
 
+- **Apply migration `016`** (`program_preview_media`) — the Course Glimpse
+  photo option cannot save until it exists.
 - **Confirm migrations `014` + `015` are applied** to the Supabase project.
   `014` must ship together with its app code (`submitAttempt` service-role
   write). Until confirmed, `test_attempts` may still be self-writable and
@@ -423,6 +433,21 @@ detail preserved in git history): `docs/PROJECT_CONTEXT.md`, `docs/HANDOVER.md`,
 Newest first. One entry per session that changed something. Keep entries short —
 git commit messages carry the detail.
 
+- **2026-07-27** — Program "Course Glimpse" can now be a **photo instead of a
+  trailer**. Previously the enrol card on `/programs/[slug]` could only be
+  filled by `preview_video_url`, so any course without a filmed trailer showed
+  an empty gradient in the most valuable slot on the page. Migration `016` adds
+  `preview_image_url` + `preview_kind` ('video'|'image'); the LMS editor gained
+  a Video-link / Photo toggle (uploads to `course-assets/previews/`, same bucket
+  as covers so `next/image` can load it), and the public page renders the chosen
+  medium, falling back to the other one and then the placeholder. Storing an
+  explicit kind — rather than "whichever is set" — means toggling never destroys
+  the value you aren't currently showing. Also: the trailer field now warns
+  inline when the link isn't a YouTube URL the embed helper can use.
+  **Migration `016` is NOT yet applied.** Verified: typecheck, lint (0 errors),
+  80 tests, build clean; dev smoke on the live DB — `/programs` 200, a detail
+  page 200 rendering the placeholder path correctly *without* the new columns,
+  admin editor 307→login, no runtime errors.
 - **2026-07-27** — Docs consolidated. Created this file as the single state
   document; deleted six superseded state/audit docs (see §10); froze the
   masterplan's progress tracker to a pointer; corrected the README migration

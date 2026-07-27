@@ -3,6 +3,7 @@ export type ProgramStatus = "draft" | "published" | "hidden";
 export type ClassStatus = "draft" | "published" | "hidden";
 export type ResourceType = "pdf" | "docx" | "ppt" | "zip" | "link" | "drive" | "other";
 export type QuestionType = "mcq" | "true_false" | "short";
+export type PreviewKind = "video" | "image";
 
 export type Resource = {
   id: string;
@@ -70,6 +71,9 @@ export type ProgramInfo = {
   description: string;
   cover_url: string | null;
   preview_video_url: string;
+  preview_image_url: string | null;
+  /** Which of the two fills the enrol card's glimpse slot. */
+  preview_kind: PreviewKind;
   category_id: string | null;
   level: Level;
   status: ProgramStatus;

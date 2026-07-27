@@ -59,7 +59,17 @@ const programInfoSchema = z.object({
   title: z.string().min(1).optional(),
   subtitle: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  // Deliberately NOT url-validated: this field autosaves while the admin is
+  // still typing, so requiring a complete URL would reject the whole patch on
+  // every intermediate keystroke ("Please check the program fields") and lose
+  // the rest of their edits. The render side is what's actually load-bearing —
+  // `youtubeEmbedUrl` only ever emits a real YouTube host, and the image is
+  // passed through `safeHref` — so a junk value degrades to the placeholder
+  // instead of reaching an iframe or an <img src>. The editor shows an inline
+  // hint so the admin still finds out.
   preview_video_url: z.string().nullable().optional(),
+  preview_image_url: z.string().nullable().optional(),
+  preview_kind: z.enum(["video", "image"]).optional(),
   category_id: z.string().uuid().nullable().optional(),
   level: z.enum(["beginner", "intermediate", "advanced", "all_levels"]).optional(),
   status: z.enum(["draft", "published", "hidden"]).optional(),

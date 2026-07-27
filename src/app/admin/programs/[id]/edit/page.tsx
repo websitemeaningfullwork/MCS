@@ -19,6 +19,7 @@ export const metadata: Metadata = { title: "Edit program" };
 
 type Level = ProgramInfo["level"];
 type ProgramStatus = ProgramInfo["status"];
+type PreviewKind = ProgramInfo["preview_kind"];
 
 export default async function EditProgramPage({
   params,
@@ -185,6 +186,10 @@ export default async function EditProgramPage({
     description: program.description ?? "",
     cover_url: program.cover_url ?? null,
     preview_video_url: program.preview_video_url ?? "",
+    preview_image_url: program.preview_image_url ?? null,
+    // Rows written before migration 016 have no kind; 'video' is what they were
+    // already doing, so that is the behaviour-preserving default.
+    preview_kind: (program.preview_kind === "image" ? "image" : "video") as PreviewKind,
     category_id: program.category_id ?? null,
     level: (program.level ?? "all_levels") as Level,
     // Legacy rows may carry the old 'archived' status; surface it as 'hidden'

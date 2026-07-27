@@ -192,6 +192,8 @@ export type Database = {
           description_bn: string | null;
           cover_url: string | null;
           preview_video_url: string | null;
+          preview_image_url: string | null;
+          preview_kind: string | null;
           category_id: string | null;
           mentor_id: string | null;
           price_bdt: number;
@@ -221,6 +223,8 @@ export type Database = {
           description_bn?: string | null;
           cover_url?: string | null;
           preview_video_url?: string | null;
+          preview_image_url?: string | null;
+          preview_kind?: string | null;
           category_id?: string | null;
           mentor_id?: string | null;
           price_bdt?: number;
@@ -250,6 +254,8 @@ export type Database = {
           description_bn?: string | null;
           cover_url?: string | null;
           preview_video_url?: string | null;
+          preview_image_url?: string | null;
+          preview_kind?: string | null;
           category_id?: string | null;
           mentor_id?: string | null;
           price_bdt?: number;

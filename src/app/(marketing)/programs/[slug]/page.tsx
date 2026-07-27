@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -22,6 +23,8 @@ import {
 } from "@/components/ui/tabs";
 import { BookmarkButton } from "@/components/shared/bookmark-button";
 import { YouTubeEmbed } from "@/components/shared/youtube-embed";
+import { safeHref } from "@/lib/safe-url";
+import { youtubeEmbedUrl } from "@/lib/youtube";
 import { RatingSummary } from "@/components/reviews/rating-summary";
 import { ReviewCard } from "@/components/reviews/review-card";
 import { summarize, type PublicReview } from "@/components/reviews/types";
@@ -148,6 +151,23 @@ export default async function ProgramDetailPage({
   const durationHours = program.duration_minutes
     ? Math.max(1, Math.round(program.duration_minutes / 60))
     : null;
+
+  // The enrol card's glimpse: a trailer video or a still photo (migration 016).
+  // `preview_kind` is the admin's explicit choice, but it is not the whole
+  // answer — a program can be set to 'image' with nothing uploaded yet, or
+  // carry a link that isn't really YouTube. So resolve the choice first, then
+  // fall back to the other medium if it has usable content, and only then to
+  // the placeholder. That way the best available thing is always shown.
+  //
+  // safeHref: photos predating this feature can't exist, but the column is
+  // free-text on the server (it autosaves), so it is guarded like every other
+  // URL that reaches an src.
+  const previewImage = safeHref(program.preview_image_url);
+  const previewVideo = youtubeEmbedUrl(program.preview_video_url) ? program.preview_video_url : null;
+  const glimpse: "image" | "video" | null =
+    program.preview_kind === "image"
+      ? (previewImage ? "image" : previewVideo ? "video" : null)
+      : (previewVideo ? "video" : previewImage ? "image" : null);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -365,7 +385,17 @@ export default async function ProgramDetailPage({
         {/* Sticky price card */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            {program.preview_video_url ? (
+            {glimpse === "image" && previewImage ? (
+              <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-secondary shadow-card">
+                <Image
+                  src={previewImage}
+                  alt={`${program.title} — a glimpse of the course`}
+                  fill
+                  sizes="(min-width: 1024px) 24rem, 100vw"
+                  className="object-cover"
+                />
+              </div>
+            ) : glimpse === "video" ? (
               <YouTubeEmbed
                 url={program.preview_video_url}
                 title={`${program.title} — preview`}
