@@ -52,11 +52,17 @@ Payment is a **manual bKash** flow verified by an admin (no automatic gateways i
 
 ## Project docs
 
-Build plan and specification live in [`/docs`](./docs):
+**[`PROJECT_STATE.md`](./PROJECT_STATE.md) is the place to start** — what is
+built, what is deployed, what is still open, and the session history. It is kept
+current; everything else below is a fixed specification.
 
-- `MCS main idea.md` — full brand & design specification
-- `01_MCA_Roadmap_MindMap.md` — MVP roadmap / mind map
-- `02_MCA_Claude_Code_Prompts.md` — chunk-by-chunk build prompts + SQL schema
+- `fully redesign the website/MCA_REDESIGN_MASTERPLAN.md` — Phase-2 design rules
+  and feature specs (+ the six UI reference screenshots beside it)
+- `fully redesign the website/convertion of the website MCS.md` — primary client spec
+- `docs/MCA Homepage Redesign Documentation .md` — homepage + checkout spec
+- `docs/MCS main idea.md` — full brand & design specification
+- `docs/01_MCA_Roadmap_MindMap.md` — original MVP roadmap / mind map
+- `docs/02_MCA_Claude_Code_Prompts.md` — original build prompts + MVP SQL schema
 
 ## Database
 
@@ -73,9 +79,10 @@ supabase db push
 later migration patches on top — `003`–`004` storage buckets, `006`–`008`
 security hardening and indexes, `009` site settings, `010` the LMS
 (seasons/classes/quizzes), `011` reviews, `012` mentor management, `013`
-appointments + notifications, `014` attempt/payment integrity. Several of those
-add **new tables**, so a database stopped at `008` is missing core feature
-tables and the app will break.
+appointments + notifications, `014` attempt/payment integrity, `015` release of
+draft classes stranded in already-sold courses. Several of those add **new
+tables**, so a database stopped at `008` is missing core feature tables and the
+app will break.
 
 All migrations are idempotent (safe to re-run) — where a later migration
 tightens or removes a policy, the earlier file keeps the `drop policy if exists`

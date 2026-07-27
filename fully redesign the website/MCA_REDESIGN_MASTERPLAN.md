@@ -4,9 +4,9 @@
 > redesign the website" effort. When a new session starts, read this file top to
 > bottom and you will know: what MCA is, what already exists in the codebase, what
 > we are converting it into, the design rules, and the exact chunked roadmap.
-> The user will typically say: *"Read MCA_REDESIGN_MASTERPLAN.md and start Chunk N."*
-> Then execute that chunk against its Acceptance Criteria, and update the
-> **Progress Tracker** (§12) at the end of the session.
+> All nine chunks have shipped. Use it as the **spec** you check work against —
+> design rules (§4), section inventory (§5), and the chunk definitions (§11) that
+> say what each feature was built to do. For live status, read `PROJECT_STATE.md`.
 >
 > Companion docs (all under the repo):
 > - `fully redesign the website/convertion of the website MCS.md` — the **primary
@@ -14,18 +14,19 @@
 >   Appointments).
 > - `docs/MCA Homepage Redesign Documentation .md` — homepage + checkout spec.
 > - `docs/MCS main idea.md` — brand identity / design language.
-> - `docs/PROJECT_CONTEXT.md` + `docs/HANDOVER.md` — what the MVP already shipped.
+> - `PROJECT_STATE.md` (repo root) — **current state, open work, session log.**
 > - UI reference images live next to this file (see §7).
 >
-> _Created: 2026-07-22. Keep the Progress Tracker (§12) current — it is how future
-> sessions know where we are._
+> _Created: 2026-07-22. All nine chunks are complete — this file is now a design
+> **spec** (rules, section inventory, chunk definitions), not a status tracker.
+> Live status lives in `PROJECT_STATE.md`; do not re-add a tracker here._
 
 ---
 
 ## 1. How to use this document
 
-1. **Resuming work:** read §2 (state), §4 (design rules), §12 (progress), then open
-   the chunk you were asked to do in §11.
+1. **Resuming work:** read `PROJECT_STATE.md` for where things stand, then §4
+   (design rules) here, then the chunk in §11 whose feature you are touching.
 2. **Each chunk is self-contained**: it lists Goal → Source spec → DB migrations →
    Files → Acceptance Criteria → Dependencies. Do the migrations first, then
    server actions/features, then UI, then verify.
@@ -33,8 +34,8 @@
    you know."* Read the relevant guide in `node_modules/next/dist/docs/` first.
    The installed version is **Next.js 16** (App Router, RSC, TS strict).
 4. **Respect the gotchas** in §10 — they are real bugs we already paid for.
-5. When a chunk is done: run `npm run build`, drive the flow (use the `verify`
-   skill / headless CDP pattern), then tick the tracker.
+5. When work is done: run `npm run build`, drive the flow, then record it in
+   `PROJECT_STATE.md` (§11 session log) — not here.
 
 ---
 
@@ -74,8 +75,10 @@ src/
                   mentor-guard.ts, constants.ts, format.ts, slug.ts, i18n.ts
   types/          database.types.ts  (hand-authored, matches gen-types shape)
   proxy.ts        session refresh + route guards (was middleware.ts)
-supabase/migrations/  000..008  (SINGLE SOURCE OF TRUTH — apply in order)
+supabase/migrations/  000..015  (SINGLE SOURCE OF TRUTH — apply in order)
 ```
+> The map above is the **pre-redesign** tree, kept because the chunk definitions
+> in §11 refer to it. For the tree as it stands now, see `PROJECT_STATE.md` §3.
 
 ### What's already built & live (don't rebuild — extend)
 Public: Home (hero + 5 feature cards + programs + mentors + Continue Journey + Ask
@@ -543,198 +546,17 @@ green used only for status across the whole app.
 
 ---
 
-## 12. Progress tracker (UPDATE THIS EACH SESSION)
+## 12. Status — see `PROJECT_STATE.md`
 
-| Chunk | Title | Status | Notes / last touched |
-|---|---|---|---|
-| 1 | Site Settings + WhatsApp FAB + badge removal | ◐ Code-complete — **needs migration 009 applied to Supabase** | Build passes; homepage still static; FAB degrades gracefully pre-migration. Files: migration 009, `lib/site-settings.ts`, `features/admin/site-settings-actions.ts`, `components/shared/whatsapp-fab.tsx`, `components/admin/whatsapp-settings-form.tsx`, tabbed `admin/settings/page.tsx`, root layout mount, badge removed in `page.tsx`, `wa-float` keyframe in globals.css, sidebar label → "Settings". |
-| 2 | Homepage gogee8 sections + footer + mega menu | ✅ Done (build + SSR-verified) | Added About MCA, Student Success Stories carousel, Achievements/Winners gallery; footer social-proof metric strip + email; Programs mega menu (2-panel). New files: `marketing/carousel.tsx`, `testimonial-carousel.tsx`, `achievements-gallery.tsx`; constants expanded (TESTIMONIALS×6, ACHIEVEMENTS, MEGA_HIGHLIGHTS, FOOTER_METRICS). Testimonials are placeholder → Chunk 5 wires real approved reviews. No DB changes. |
-| 3 | LMS data model + admin course editor | ◐ Code-complete — **needs migration 010 applied to Supabase** | Build + typecheck + lint + 29 tests pass. Editor is dynamic (SSR on demand) and requires migration 010 (new tables/columns) before it can load. Files: migration `010_lms.sql` (program_mentors, lesson_resources, quizzes, quiz_questions + modules.subtitle + lessons.overview_html/thumbnail_url/admin_notes/status + program_status enum 'hidden' + `course-assets` public bucket + backfill from programs.mentor_id), types updated, `features/admin/program-editor-actions.ts` (granular autosave actions), rebuilt `admin/programs/[id]/edit/page.tsx` (loads full tree), new `components/admin/program-editor/*` (orchestrator, program-info-panel, season-tree, class-editor, rich-text-editor, resource-manager, quiz-manager, use-autosave, types). 3-column responsive workspace, debounced autosave + explicit Save, HTML5 drag-reorder for seasons & classes, multi-mentor + primary, class tabs Basic/Overview/Resources/Quiz/Notes. Old `module-manager.tsx` now orphaned (harmless). Resource/thumbnail uploads go to public `course-assets` bucket. |
-| 4 | Student course player | ✅ Done (build + SSR-compile + dev smoke; enrolled-student drive not run — no test login) | Rebuilt `dashboard/learn/[programSlug]/page.tsx` to load the Chunk-3 tree (seasons→published classes + resources + quiz + notes) and render `components/dashboard/course-player/*`: `course-player.tsx` (orchestrator: client lesson state, optimistic mark-complete → `setLessonCompletion`, prev/next, auto-advance), `curriculum-sidebar.tsx` (collapsible seasons, % per season, green checks/current/empty, Course Resources shortcut), `youtube-embed.tsx` (nocookie, rel=0, inline), `lesson-tabs.tsx` (Overview/Resources/Q&A/Notes + interactive self-check quiz), `types.ts`. Students see published classes only; admins get an "Admin preview" badge and see all. Immersive full-width: added `dashboard-shell.tsx` (client) so `/dashboard/learn/*` opts out of the dashboard sidebar/max-w-6xl chrome; `dashboard/layout.tsx` delegates to it. Added `setLessonCompletion(lessonId, programId, completed)` toggle in `features/learning/actions.ts` (markLessonComplete now delegates). Reviews tab deferred to Chunk 5 (course.jpg shows 4 tabs). Old `mark-complete-button.tsx` now orphaned (harmless). Build + tsc + eslint + 29 tests pass; dev server: `/dashboard/learn/*` and `/dashboard` gate to login, `/programs` 200, no runtime errors. |
-| 5 | Review system + moderation + social proof | ◐ Code-complete — **needs migration 011 applied to Supabase** | Build + tsc + eslint + 29 tests pass; dev smoke: public 200, protected 307→login, no runtime errors, degrades gracefully pre-migration. Files: migration `011_reviews.sql` (`reviews` table lesson/season/course scope + partial-unique-per-target, status guard + updated_at triggers, RLS, `public_reviews` view joined to reviewer+program w/ verified_buyer), types updated (`reviews` table + `public_reviews` view), `features/reviews/{schema,actions}.ts` (completion-gated submit via find-then-update/insert — NOT upsert, partial indexes can't be inferred; own edit/delete; admin approve/hide/report/delete; aggregate recompute for programs + mentors via service role). Shared `components/reviews/*` (stars, star-input, review-card, rating-summary, types+summarize). Course player: Reviews tab (`reviews-tab.tsx`) + 3 unlock composers (`review-composer.tsx` lesson/season/course) wired through `lesson-tabs.tsx` + `course-player.tsx`; learn page fetches ownReviews + approved course reviews. Program detail page: Reviews tab (summary + cards). Homepage: `TestimonialCarousel` now data-driven from approved course reviews (seed fallback). Admin `/admin/reviews` (filters program/rating/status + search + CSV export + approve/hide/delete via `reviews-table.tsx`). Dashboard `/dashboard/reviews` My Reviews (edit→pending, delete via `my-reviews.tsx`). Nav: admin + dashboard "Reviews" items, `reviews`→Star icon. Green kept status-only; ratings use amber. |
-| 6 | Mentor management (admin redesign) | ◐ Code-complete — **needs migration 012 applied to Supabase** | Build + tsc + eslint + 29 tests pass; dev smoke: `/mentors` 200, admin gated 307→login, degrades gracefully pre-migration. Files: migration `012_mentor_management.sql` (mentors + phone/email/show_* toggles/highest_qualification/current_position/organization/availability jsonb/session_duration(min)/session_price_bdt/currency/facebook_url/youtube_url/is_active/sort_order/status; extended `protect_mentors_columns` guard to also lock is_active/status/sort_order; **LOCKED base `mentors` to own-or-admin** and added visibility-gated `public_mentors` view (contact nulled unless show_*, only active mentors); `avatars: admin write` storage policy). Types updated (mentors columns + public_mentors view). `features/admin/mentor-schema.ts` (zod + WEEKDAYS/SESSION_DURATIONS/availability), rewrote `saveMentor`. Rebuilt `admin/mentors/[id]/edit` + `components/admin/mentor-form.tsx` as the single-page editor matching `mentors.jpg` (profile photo upload/remove → avatars bucket, Basic, Contact+Visibility toggles, Expertise/Skills tag inputs via new `tag-input.tsx`, Professional, Availability days/hours/breaks, Session&Pricing, Social, Featured/Verified/Active/Sort/Status). New `components/shared/social-icons.tsx` (lucide dropped brand icons). **Repointed all anon mentor reads to `public_mentors`**: mentors list, mentor detail (now shows session price/availability/socials/gated contact), program detail mentor tab, homepage featured, sitemap. Admin list shows status/inactive badges + sort order. bio stays on profiles.bio. |
-| 7 | Appointment booking system | ◐ Code-complete — **needs migrations 012 + 013 applied to Supabase** | Build + tsc + eslint + vitest(36, +7 new slot tests) clean; dev smoke: `/` 200, `/appointments` + `/dashboard/appointments` + `/admin/appointments` 307→login, no runtime errors, degrades gracefully pre-migration. Files: migration `013_appointments.sql` (`appointment_types` seeded with the 7 default types, `appointments` with self-contained manual-bKash payment fields + slot unique index + `protect_appointments` guard trigger blocking student self-confirm/self-pay, `notifications` for student/mentor/admin) + RLS. Types updated. `features/appointments/{slots,schema,actions,admin-actions}.ts`: pure TZ-safe slot generation from mentor `availability`+`session_duration` (extended jsonb with optional `max_per_day`+`unavailable_dates`), student actions (getDaySlots/getMentorsForSlot union across active mentors via `public_mentors`, createAppointment→pending, submitAppointmentPayment→submitted+redirect, cancel/reschedule/getRescheduleSlots), admin actions (type CRUD, status/payment/mentor/reschedule/meeting-link/delete, saveMentorSchedule, getMentorDaySlots). `features/notifications/{service,actions}.ts` (service-role fan-out + mark-read). Public 5-step wizard `app/appointments/page.tsx`+`components/appointments/booking-wizard.tsx` (progress bar, type cards, month calendar+slots w/ available/selected/booked legend, details form, mentor cards, review summary) → `[id]/pay` (bKash card + `appointment-payment-form.tsx`) → `[id]/confirmation`. Dashboard `dashboard/appointments` My Appointments (`my-appointments.tsx`: upcoming/completed/cancelled tabs, cancel, reschedule dialog, join, pay-now, payment status). Admin `admin/appointments` (KPIs + today's list + `admin-notifications.tsx`), `/all` (`appointments-table.tsx`: search/filter + per-row Manage dialog), `/calendar` (monthly booking counts), `/schedule` (`mentor-schedule-editor.tsx`: days/hours/breaks/max-per-day/holidays), `/types` (`types-manager.tsx`). Nav: `Appointments` added to navbar + admin/dashboard sidebars + i18n EN/বাংলা; proxy protects `/appointments`. Shared `appointment-icon.tsx` (string-key registry), `status-badge.tsx` (green=confirmed/paid/completed only). Slots derived at request time — no slot table. |
-| 8 | Checkout redesign | ✅ Done (build + tsc + eslint + vitest(36) + dev smoke) | The premium two-column checkout already matched the spec; Chunk 8 **componentised** it into the masterplan's named reusable pieces and aligned the How-to-Pay steps to the spec's exact titles/colours. New `components/checkout/*`: `order-summary.tsx` (thumbnail/rating/students/lifetime badge), `bkash-card.tsx` (pink-confined payment card w/ copy + QR, null-safe), `how-to-pay.tsx` (7 cards, each own accent: Pink/Orange/Purple/Blue/Green/Indigo/Orange), `need-help.tsx` (4 channel cards), `footer-strip.tsx` (SSL/Safe/Manual/Fast, green trust icons). `checkout/page.tsx` now composes them (benefits/bonus/pricing + FreeCheckout stay inline — checkout-specific). Verify form was already spec-perfect (`checkout-form.tsx`: sender/TrxID/amount, drag-drop PNG/JPG/JPEG/WEBP ≤5MB, "Submit Payment for Verification", 24h note). **Cross-cut win:** the Chunk-7 appointment pay page now reuses `BkashCard` + `HowToPay` + `TrustFooterStrip`, dropping its duplicated inline bKash card. No DB changes. Green kept status/trust-only; bKash pink confined to the payment card. |
-| 9 | Notifications + i18n + final QA | ✅ Done (build + tsc + eslint + vitest(36) + dev smoke; migrations 012+013 verified live) | Navbar bell wired for all roles: new `components/shared/notification-bell.tsx` (client island — RLS-scoped browser reads keep the root layout static; personal feed + admin broadcast, unread badge, mark-one/mark-all read, per-type icon chips blue/violet/orange/amber, payload `href` deep links w/ role-based fallback for old Chunk-7 rows, refetch on open/focus, degrades to empty pre-migration). Navbar shows the live bell when authed, login-link bell otherwise. Fan-out completed for the remaining event sources: payments (`submitManualPayment`→student receipt + admin "New payment to verify"; `approvePayment`→"access granted"; `rejectPayment`→reason), questions (`createQuestion`→assigned mentor + admins; `postAnswer`→student reply alerts mentor-else-admins, staff reply alerts the owner), reviews (`submitReview`/`updateOwnReview`→admin moderation queue; `setReviewStatus` approved→"Your review is now live"). Appointments already fanned out (Chunk 7). i18n: `notifications` dict section (title/markAllRead/empty/unread) EN + বাংলা, consumed by the bell. Green stayed status-only (badge=destructive red, unread dot=primary). Homepage still static ISR; only pre-existing OG-image lint warning remains. |
+**All nine chunks are complete and live** (Chunk 1 → 9, built 2026-07-22;
+migrations `009`–`013` applied and verified). The full per-chunk build log that
+used to live here has moved to the repo-root **`PROJECT_STATE.md`**, which is now
+the single place that records what is built, what is applied, what is open, and
+what changed each session.
 
-Status legend: ☐ Not started · ◐ In progress · ✅ Done (build + verified).
-
-**Latest migration number applied:** 013 — ALL migrations live; verified
-2026-07-22 via anon PostgREST probes: `appointment_types` returns the 7 seeded
-types, `notifications` + `appointments` exist (RLS-empty for anon, no PGRST205),
-`public_mentors` exposes every Chunk-6 column with visibility gating working
-(contact nulled unless its show_* toggle is on), and the base `mentors` table is
-locked to own-or-admin. Chunks 1–9 fully active. **Next new migration = 014.**
-Operational note: no mentor has `availability`/`session_duration` configured yet,
-so the booking wizard shows no slots until Admin → Appointments → Mentor Schedule
-is filled in for at least one mentor.
-**Session log:**
-- 2026-07-22 — Master plan authored. No code changes yet.
-- 2026-07-22 — Chunk 1 built: `site_settings` (migration 009), admin-controlled
-  floating WhatsApp button (global, cached via `unstable_cache` + tag revalidation),
-  tabbed Admin → Settings (WhatsApp + Payment), hero badge removed. `npm run build`
-  clean; `/` still static ISR. Migration 009 applied by user.
-- 2026-07-22 — Chunk 2 done: homepage gogee8 sections (About MCA, Student Success
-  Stories carousel, Achievements/Winners gallery), footer social-proof strip + email,
-  Programs mega menu. Dependency-free scroll-snap `Carousel`. Build clean, `/` still
-  static ISR; SSR HTML confirmed all new sections render. Next: **Chunk 3 (LMS)**.
-- 2026-07-22 — Chunk 3 built (code-complete): full LMS data model (migration 010) +
-  3-column autosaving admin course editor matching `programs.jpg`. Reuses modules=
-  Seasons, lessons=Classes; adds program_mentors (multi-mentor), lesson_resources,
-  quizzes, quiz_questions; adds lessons.overview_html/thumbnail_url/admin_notes/status
-  and modules.subtitle; adds 'hidden' to program_status; public `course-assets` bucket
-  for covers/thumbnails/resource files; backfills program_mentors from programs.mentor_id.
-  Granular server actions in `program-editor-actions.ts` (autosave, no revalidate on
-  keystrokes; structural ops touch public paths). New client editor under
-  `components/admin/program-editor/`: orchestrator holds all state, debounced autosave
-  + explicit Save, HTML5 drag-reorder for seasons/classes, dependency-free rich-text
-  editor (execCommand) for Overview, resource manager (file→course-assets or link),
-  quiz manager (mcq/true-false/short), notes. `npm run build` + `tsc` + eslint +
-  vitest (29) all clean. **Migration 010 NOT yet applied** — the editor is dynamic and
-  will error until the new tables/columns exist (same pattern as Chunk 1 → 009).
-  Next: **Chunk 4 (Student Course Player)**, which consumes this data.
-- 2026-07-22 — Migration 010 applied by user. Chunk 4 built: premium student course
-  player replacing `dashboard/learn/[programSlug]`. Immersive full-width (new
-  `dashboard-shell.tsx` drops the dashboard chrome on `/dashboard/learn/*`), curriculum
-  sidebar with per-season % + green checks + current highlight, privacy-friendly
-  YouTube embed (nocookie/rel=0, plays inline), Overview/Resources/Q&A/Notes tabs with
-  an interactive self-check quiz, prev/next + optimistic Mark-as-Complete → rolls up
-  enrollment %. New `setLessonCompletion` toggle action. Students see published classes
-  only; admins get an Admin-preview badge over the full tree. `npm run build` + tsc +
-  eslint + vitest(29) clean; dev-server smoke: auth gate + public pages OK, no runtime
-  errors. Could not drive an enrolled-student session (no test login). Next: **Chunk 5
-  (Review system)** — wires the Reviews tab, unlock cards, moderation, and the homepage
-  Success Stories carousel (Chunk 2 placeholder) to real approved reviews.
-- 2026-07-22 — Chunk 5 built (code-complete): full review system (migration 011).
-  `reviews` table discriminated by scope (lesson|season|course) with partial
-  per-target unique indexes, a status guard trigger (non-admins forced to
-  'pending'), and a column-safe `public_reviews` view (approved only, joined to
-  reviewer name/avatar + verified_buyer, like public_mentor_profiles). Completion
-  is enforced server-side in `features/reviews/actions.ts` (lesson complete /
-  every published class in a season / whole course), which submits via
-  find-then-update/insert (NOT upsert — partial indexes can't be inferred by
-  ON CONFLICT). Admin moderation (approve/hide/report/delete) recomputes
-  programs.rating/reviews_count and each assigned mentor's aggregate through the
-  service-role client (passes the mig-006 rating column guards). Student-facing:
-  course-player Reviews tab with 4.x/5 summary + histogram + approved list and
-  three completion-unlocked composer cards (Great job / season / course), matching
-  `admin panel course.jpg`. Program detail page gained a Reviews tab; the homepage
-  Student Success Stories carousel is now driven by real approved course reviews
-  (seed fallback). Admin `/admin/reviews` (filters program/rating/status + search +
-  CSV export) and dashboard `/dashboard/reviews` (My Reviews: edit→pending, delete).
-  Ratings render amber (green stays status-only). `npm run build` + tsc + eslint +
-  vitest(29) clean; homepage still static ISR; dev smoke: public 200, protected
-  307→login, no runtime errors, pages degrade to empty pre-migration. **Migration
-  011 NOT yet applied** (same pattern as 009/010). Next: **Chunk 6 (Mentor mgmt)**.
-- 2026-07-22 — Migration 011 applied by user. Chunk 6 built (code-complete): full
-  mentor management (migration 012). Added the mentor profile fields (contact +
-  per-field visibility toggles, professional info, availability jsonb, session
-  duration/price/currency, social links, is_active/sort_order/status) and — matching
-  mig-006's hardening — LOCKED the previously world-readable base `mentors` table to
-  own-or-admin, routing all public reads through a new visibility-gated
-  `public_mentors` view (contact fields nulled unless their show_* toggle is on; only
-  active mentors exposed). Extended `protect_mentors_columns` so students/mentors
-  can't self-set is_active/status/sort_order. Added an `avatars: admin write` storage
-  policy so admins can upload a mentor's photo. Rebuilt the admin editor as the
-  single-page `mentors.jpg` layout (photo upload/remove, tag inputs for expertise/
-  skills, availability day/hour/break editor, session & pricing, social, status).
-  Repointed every anon mentor read (mentors list/detail, program detail mentor tab,
-  homepage featured, sitemap) to `public_mentors`; the public mentor detail page now
-  surfaces session price, availability, socials, and visibility-gated contact. Bio
-  stays on profiles.bio (reused). `npm run build` + tsc + eslint + vitest(29) clean;
-  homepage still static ISR; dev smoke: `/mentors` 200, admin gated 307→login, no
-  runtime errors, degrades gracefully pre-migration. **Migration 012 NOT yet applied**
-  — deploy it WITH this code (locks base table). Next: **Chunk 7 (Appointments)**,
-  which consumes mentor availability + session pricing from this chunk.
-- 2026-07-22 — Chunk 7 built (code-complete): full appointment booking system
-  (migration 013). New tables `appointment_types` (7 defaults seeded), `appointments`
-  (self-contained manual-bKash payment fields; slot unique index prevents
-  double-booking; `protect_appointments` guard trigger blocks students from
-  self-confirming or self-marking paid), and `notifications` (student/mentor/admin
-  feed). Slots are derived at request time from each mentor's Chunk-6 `availability`
-  jsonb + `session_duration` (extended with optional `max_per_day` + `unavailable_dates`)
-  minus booked slots — no slot table; read across active mentors via `public_mentors`,
-  booked tuples via the service role. Public 5-step wizard (Type → Date&Time → Details
-  → Mentor → Review&Pay) → dedicated pay page (reuses payment_settings + payment-
-  screenshots bucket) → confirmation. Student My Appointments (cancel / reschedule /
-  join / pay). Admin: dashboard KPIs + today's list + notifications panel, All
-  Appointments (search/filter + Manage dialog: status/payment/mentor/reschedule/link/
-  delete), Calendar view, Mentor Schedule editor (days/hours/breaks/cap/holidays),
-  Appointment Types manager. Nav item added (navbar + admin/dashboard sidebars +
-  EN/বাংলা i18n); proxy protects `/appointments`. Marking payment paid auto-confirms
-  + notifies. Green kept status-only (confirmed/paid/available). `npm run build` + tsc
-  + eslint + vitest(36, incl. 7 new slot tests) clean; dev smoke: public 200,
-  protected 307→login, no runtime errors, degrades gracefully. **Migrations 012 + 013
-  NOT yet applied** — apply both before booking works end-to-end. Next: **Chunk 8
-  (Checkout redesign)**.
-- 2026-07-22 — Chunk 8 done: checkout componentisation. The existing `/checkout`
-  already matched the premium two-column spec, so this chunk extracted its inline
-  sections into the masterplan's named reusable components under
-  `components/checkout/` (`order-summary`, `bkash-card`, `how-to-pay`, `need-help`,
-  `footer-strip`), aligned the How-to-Pay step titles/colours to the spec exactly,
-  and refactored `checkout/page.tsx` to compose them (course benefits/bonus/pricing
-  + the free-item path stay inline). The Chunk-7 appointment payment page now reuses
-  `BkashCard` + `HowToPay` + `TrustFooterStrip` instead of a duplicated inline card,
-  so course checkout and appointment payment read identically. No DB changes; verify
-  form (`checkout-form.tsx`) was already spec-complete. `npm run build` + tsc + eslint
-  + vitest(36) clean; dev smoke: `/checkout` gates 307→login, no runtime errors.
-  Next: **Chunk 9 (Notifications + i18n + final QA)** — wire the navbar bell to the
-  Chunk-7 `notifications` table for all roles, finish EN/বাংলা keys, full a11y/build pass.
-- 2026-07-22 — Chunk 9 done: navbar notification bell + fan-out completion + i18n +
-  final QA. New `components/shared/notification-bell.tsx` — a client island in the
-  navbar (authed users only; unauthed keep the login-link bell) that reads the
-  caller's RLS-scoped feed (personal rows + admin broadcast for admins) with the
-  browser client so the root layout/public pages stay static. Unread-count badge
-  (destructive red, "9+" cap), premium dropdown panel (per-event icon chips:
-  appointments=blue, payments=violet, questions=orange, reviews=amber), mark-one on
-  click + mark-all-read (single RLS-scoped unfiltered update), payload-`href` deep
-  links with a role-based fallback for pre-Chunk-9 appointment rows, refetch on
-  open/focus, graceful empty state pre-migration-013. Completed the notification
-  fan-out for every masterplan event source (appointments were already wired in
-  Chunk 7): payments — `submitManualPayment` (student receipt + admin "New payment
-  to verify" with amount/TrxID), `approvePayment` ("Payment verified — access
-  granted"), `rejectPayment` (with admin note); questions — `createQuestion`
-  (assigned mentor + admin broadcast), `postAnswer` (student reply → mentor
-  else admins; staff/community reply → question owner, with reply excerpt);
-  reviews — `submitReview` + `updateOwnReview` (admin moderation queue),
-  `setReviewStatus` approved (author "Your review is now live", only on actual
-  transition). i18n: new `notifications` dict section (title / markAllRead / empty /
-  unread) in EN + বাংলা, consumed by the bell. QA: `npm run build` clean (homepage
-  still static ISR ○ 5m), tsc + eslint (0 errors; only the pre-existing OG-image
-  `<img>` warning) + vitest(36) clean; dev smoke: `/`, `/programs`, `/mentors` 200,
-  `/appointments` + `/dashboard` + `/admin/appointments` + `/checkout` 307→login,
-  no runtime errors, bell SSRs in the navbar. Green stayed status-only. **The live
-  feed needs migrations 012 + 013 applied** (bell + fan-out degrade gracefully until
-  then). All 9 chunks are now code-complete → apply 012 + 013, then drive the §13
-  definition-of-done end-to-end.
-- 2026-07-22 — Migrations 012 + 013 confirmed applied (user applied; verified live
-  via anon PostgREST: 7 seeded appointment types, notifications/appointments tables
-  present, `public_mentors` full column set + visibility gating working, base
-  `mentors` locked). Every chunk is now live. Remaining ops task: configure mentor
-  availability + session duration/price in Admin → Appointments → Mentor Schedule
-  so the booking wizard has slots to offer.
-- 2026-07-22 — **Bangla dub completed for the whole public surface** (user report:
-  "bangla isn't working in many places incl. homepage" — root cause: only
-  nav/footer/notifications were in the dict; all Server-Component copy was
-  hardcoded EN and the client-side toggle couldn't reach it). New pattern:
-  `Bi = {en, bn}` pairs + `localize()/localizeAny()` in `lib/i18n.ts` + tiny
-  client leaf `components/shared/t.tsx` (`<T en bn/>`) so statically rendered
-  pages stay static/ISR while copy switches instantly with the toggle
-  (`:lang(bn)` already renders Hind Siliguri). Bangla copy researched against
-  10 Minute School + Shikho (loanword register, আপনি form). Converted:
-  homepage (all sections incl. FEATURES/ASK_OPTIONS/STATS), constants
-  (NAV_CATEGORIES, WHY_MCA, TESTIMONIALS, ACHIEVEMENTS, MEGA_HIGHLIGHTS,
-  FOOTER_METRICS), navbar (mega menu, account menu), footer (links + metrics),
-  SectionHeading/EmptyState (ReactNode props), FilterBar (Bi placeholders),
-  Pagination, NavSearch, TestimonialCarousel (bilingual seeds), Achievements
-  Gallery, ContinueJourney, ProgramCard (+`levelLabelBn`), ResourceCard
-  (+`RESOURCE_KIND_LABELS_BI`), and pages: about, programs, mentors, resources,
-  live-classes, mock-tests, blog, community, contact. Verified: build clean
-  (homepage still ○ 5m ISR), tsc + eslint (0 errors) + vitest(36) clean, and all
-  10 public pages serve the BN payload (SSR probe). **Still EN-only:** auth
-  forms, dashboard/mentor/admin panels, checkout, appointment wizard, program/
-  mentor detail static labels, notification texts (server-generated) — extend
-  with the same `<T>`/`Bi` pattern if the client wants them dubbed too.
+Do not re-add a progress tracker to this file. Two documents claiming to describe
+the current state is exactly the problem `PROJECT_STATE.md` was created to fix.
+Detailed per-chunk history is preserved in git (`git log --format=%B 2019415..0714773`).
 
 ---
 
