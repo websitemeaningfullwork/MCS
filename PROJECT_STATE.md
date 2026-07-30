@@ -5,7 +5,7 @@
 > (`PROJECT_CONTEXT.md`, `HANDOVER.md`, and the four production-audit reports),
 > which were deleted on 2026-07-27 because they contradicted each other.
 >
-> **Last updated:** 2026-07-30 · **HEAD:** `6f4ef2d` (+ uncommitted hero-image swap) · **Branch:** `main`
+> **Last updated:** 2026-07-31 · **HEAD:** `bbacede` (+ uncommitted navbar auth fix) · **Branch:** `main`
 
 ---
 
@@ -48,7 +48,7 @@ history goes in §11. That rule is why this file exists.
 platform for Bangladesh. Mentorship is the product; courses, e-books, live
 classes, mock tests, Ask-a-Mentor, blog and community support it.
 
-- **Live:** https://mcs-pi.vercel.app
+- **Live:** https://mcs-pi.vercel.app , https://www.meaningfulcareeracademy.com/
 - **Repo:** https://github.com/websitemeaningfullwork/MCS (`main`)
 - **Host:** Vercel — auto-deploys on every push to `main`
 - **Backend:** Supabase (project ref `vtfallczxbgdataohthu`, Singapore) — the only backend
@@ -122,8 +122,11 @@ contact, session price, availability, socials) · Resources/E-books · Blog ·
 Community · Live Classes · Mock Tests (server-scored attempts) · Appointments
 booking wizard · privacy/terms/refund.
 
-**Auth:** email + Google. Roles `student` / `mentor` / `admin`. Signup trigger
-auto-creates `profiles`. `safeNextPath()` guards the post-login redirect.
+**Auth:** email/password (live) + Google (**code-complete, provider DISABLED** —
+`/auth/v1/settings` reports `google: false`, so the button only ever toasts
+"Google sign-in isn't available yet"; it needs Google Cloud + Supabase config,
+no code). Roles `student` / `mentor` / `admin`. Signup trigger auto-creates
+`profiles`. `safeNextPath()` guards the post-login redirect.
 
 **Student dashboard:** overview · my programs · my resources (signed-URL
 download) · my orders (+ detail, resubmit on reject) · Ask-a-Mentor (thread +
@@ -297,6 +300,14 @@ or every submission silently loses its history row.
     needs a separate mentor account. Whenever an admin screen reads a base table
     that has a `public_*` counterpart, mirror the view's WHERE clause and say why
     a row is hidden.
+12. **A client island in the ROOT layout never unmounts.** `<Navbar>` reads auth
+    client-side and its effect was keyed `[]`, so it ran once per *full page
+    load*. Sign-in is a **server action**, so the browser Supabase client never
+    raises `onAuthStateChange` — the navbar kept the "anonymous" value from
+    before login and rendered "Log in" for the entire session until a hard
+    reload. Sign-out had the mirror bug. Key any auth-reading island on
+    `pathname`, and remember that a server action changing auth is invisible to
+    the browser SDK. Reproduced and fixed under real Chrome via CDP.
 
 ---
 
@@ -344,8 +355,15 @@ code on 2026-07-27 — this is the live list, not a wishlist.
   and the DB password; update the new key in Vercel.
 - **Set community links** — `NEXT_PUBLIC_COMMUNITY_FACEBOOK_URL` /
   `_WHATSAPP_URL` in Vercel (buttons stay hidden until set).
-- **Re-enable email confirmation** in Supabase Auth if it was turned off for
-  testing.
+- **Enable the Google auth provider.** Verified 2026-07-31 via
+  `GET /auth/v1/settings`: `google: false`. All app code exists
+  (`signInWithGoogle`, `GoogleButton`, `/auth/callback`); what's missing is a
+  Google Cloud OAuth client + pasting its ID/secret into Supabase → Auth →
+  Sign In / Providers → Google, plus adding every origin's `/auth/callback` to
+  Supabase → Auth → URL Configuration → Redirect URLs.
+- **Re-enable email confirmation** in Supabase Auth — still off. Verified
+  2026-07-31: `mailer_autoconfirm: true`, i.e. new accounts are auto-confirmed
+  without proving the address.
 - **Set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`** in Vercel. The
   rate limiter supports Upstash but **falls back to a per-instance in-memory Map**,
   which is a no-op across a serverless fleet — login, signup, password-reset,
@@ -442,6 +460,23 @@ detail preserved in git history): `docs/PROJECT_CONTEXT.md`, `docs/HANDOVER.md`,
 Newest first. One entry per session that changed something. Keep entries short —
 git commit messages carry the detail.
 
+- **2026-07-31** — **Fixed the "still logged out after logging in" navbar bug.**
+  `<Navbar>` is a client island in the **root layout**, so it never unmounts
+  during client-side navigation, and its auth effect was keyed `[]` — it ran once
+  per full page load. Sign-in runs in a **server action**, which sets the auth
+  cookies but raises no `onAuthStateChange` on the browser client, so the island
+  kept the "anonymous" value it resolved on `/login` and rendered **"Log in" on
+  every page for the rest of the session** until a manual reload. Keyed the
+  effect on `pathname` (`createBrowserClient` is a browser singleton, so the
+  re-check is cheap) and made sign-out flip the state optimistically, since
+  signing out *from* `/` redirects to `/` and would not change `pathname`.
+  **Reproduced and verified in real headless Chrome over CDP** (Node's built-in
+  WebSocket; no new dependency): with `[]` the navbar showed "Log in" on
+  `/dashboard`, `/` and `/mentors` after a successful login; with `[pathname]`
+  all three show the account menu. Also split the featured mentor's `expertise`
+  (1 → 5 tags) and `skills` (1 → 12 tags), which had been pasted as single
+  run-on chips, and taught `TagInput` to split pasted commas/newlines so it
+  can't recur. Verified: typecheck, lint 0 errors, 80 tests, build clean.
 - **2026-07-30** — **Fixed "mentors exist but show nowhere."** Root cause was
   data, not code: `public_mentors` and `public_mentor_profiles` both require
   `profiles.role = 'mentor'`, and the DB had **3 admins, 10 students and zero

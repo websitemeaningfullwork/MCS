@@ -4,7 +4,15 @@ import { useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Tag-based text entry (expertise / skills). Add on Enter or comma. */
+/**
+ * Tag-based text entry (expertise / skills). Add on Enter or comma.
+ *
+ * `add()` splits on commas / newlines / tabs so that PASTING a list and then
+ * clicking away produces one tag per item. It used to store the pasted text
+ * verbatim, which is how a mentor ended up with all twelve of their skills in a
+ * single chip stretched across the card. Note that a space-separated paste still
+ * can't be split — spaces are legitimate inside a tag ("Mindset Coaching").
+ */
 export function TagInput({
   value,
   onChange,
@@ -19,13 +27,14 @@ export function TagInput({
   const [draft, setDraft] = useState("");
 
   function add(raw: string) {
-    const tag = raw.trim();
-    if (!tag) return;
-    if (value.some((t) => t.toLowerCase() === tag.toLowerCase())) {
-      setDraft("");
-      return;
+    const next = [...value];
+    for (const part of raw.split(/[,\n\r\t]+/)) {
+      const tag = part.trim();
+      if (!tag) continue;
+      if (next.some((t) => t.toLowerCase() === tag.toLowerCase())) continue;
+      next.push(tag);
     }
-    onChange([...value, tag]);
+    if (next.length !== value.length) onChange(next);
     setDraft("");
   }
 

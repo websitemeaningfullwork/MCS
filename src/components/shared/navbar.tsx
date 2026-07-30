@@ -60,6 +60,8 @@ export function Navbar() {
   // is a tri-state: "unknown" renders a neutral placeholder of the same size as
   // the resolved control. Starting at "anonymous" would flash a "Login" button
   // at signed-in users on every page load.
+  //
+  // The re-check below is keyed on `pathname` for a reason — see the effect.
   const [authState, setAuthState] = useState<"unknown" | "anonymous" | "authed">(
     "unknown",
   );
@@ -107,7 +109,16 @@ export function Navbar() {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+    // Re-validate on every route change. This effect used to run once ([]), which
+    // silently broke the whole session's navbar: <Navbar> lives in the ROOT
+    // layout, so it never unmounts during client-side navigation, and sign-in
+    // happens in a SERVER action (`signInWithEmail`). The server sets the auth
+    // cookies, but the browser client never performs the sign-in, so
+    // onAuthStateChange never fires here — the island stayed on the "anonymous"
+    // value it resolved before login and kept rendering "Log in" until a hard
+    // reload. Sign-out had the mirror bug (kept showing the account menu).
+    // createBrowserClient is a browser singleton, so re-running this is cheap.
+  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -348,7 +359,18 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <form action={signOut} className="w-full">
+                  {/* Flip to signed-out immediately. `signOut` redirects to "/", and
+                      when you sign out *from* "/" the pathname never changes, so the
+                      re-check above would not fire and the account menu would linger
+                      over a cleared session. The server action still clears cookies. */}
+                  <form
+                    action={signOut}
+                    onSubmit={() => {
+                      setAuthState("anonymous");
+                      setRole(null);
+                    }}
+                    className="w-full"
+                  >
                     <button
                       type="submit"
                       className="flex w-full items-center gap-2 text-left"
