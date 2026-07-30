@@ -288,6 +288,15 @@ or every submission silently loses its history row.
 9. **Supabase keys:** the project uses the legacy `anon` + `service_role` JWTs
    (still valid). `sb_publishable_` / `sb_secret_` keys also exist — don't mix.
 10. **Next.js 16 is not your training data.** Read `node_modules/next/dist/docs/`.
+11. **An admin list that reads the base table can't see the `public_*` view's
+    filters.** `/admin/mentors` reads `mentors`; the whole public site reads
+    `public_mentors`, which also demands `profiles.role = 'mentor'`. A mentor row
+    hanging off an admin's or a student's profile is therefore visible *only* to
+    the admin — the site looks broken with no error anywhere. **A user has exactly
+    one role, so an admin cannot also be a public mentor**; a founder who mentors
+    needs a separate mentor account. Whenever an admin screen reads a base table
+    that has a `public_*` counterpart, mirror the view's WHERE clause and say why
+    a row is hidden.
 
 ---
 
@@ -433,6 +442,24 @@ detail preserved in git history): `docs/PROJECT_CONTEXT.md`, `docs/HANDOVER.md`,
 Newest first. One entry per session that changed something. Keep entries short —
 git commit messages carry the detail.
 
+- **2026-07-30** — **Fixed "mentors exist but show nowhere."** Root cause was
+  data, not code: `public_mentors` and `public_mentor_profiles` both require
+  `profiles.role = 'mentor'`, and the DB had **3 admins, 10 students and zero
+  mentors**. The single `mentors` row belonged to an *admin* account
+  (`13fdc75d…`, MD Hujaifa Sarker) which is also the `mentor_id` on the programs,
+  so `/mentors`, the homepage mentor section, program pages and the sitemap were
+  all empty while Admin → Mentors happily listed one mentor. Promoted that
+  account to `role='mentor'` (admins 3 → 2; the account **lost `/admin` access**,
+  which the owner chose knowingly). Verified through the anon client and against
+  the running app: `/`, `/mentors`, `/programs` and `/mentors/[id]` all render the
+  mentor. Also fixed the reporting gap that hid this: `/admin/mentors` read the
+  base table with no role check, so it could never disagree with the public site
+  out loud. It now mirrors the view's WHERE clause and shows a per-row "Not
+  public" badge with the reason plus a banner when *no* mentor is publicly
+  visible. **Note for whoever owns content:** that mentor's `expertise` is one
+  run-on tag ("Mindset Development Emotional Mastery Career Growth Strategy…")
+  instead of separate tags, so it renders as a single long chip.
+  This is gotcha #8's pattern again (see §7) — now generalised as #11 below.
 - **2026-07-30** — Replaced the homepage hero photo
   (`public/images/hero-mentor-student.webp`) with a client-supplied image of a
   mentor guiding a student at a desk — closer to the mentorship-first promise in
