@@ -361,7 +361,7 @@ export default async function HomePage() {
               <div className="relative aspect-video overflow-hidden rounded-[20px] shadow-[0_15px_40px_rgba(15,23,42,0.2)]">
                 <Image
                   src="/images/hero-mentor-student.webp"
-                  alt="A student learning on a laptop with mentor guidance"
+                  alt="A mentor sitting beside a student at a desk, guiding him through a study plan on his laptop"
                   fill
                   priority
                   sizes="(min-width: 1024px) 50vw, 100vw"

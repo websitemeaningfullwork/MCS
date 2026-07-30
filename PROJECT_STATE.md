@@ -5,7 +5,7 @@
 > (`PROJECT_CONTEXT.md`, `HANDOVER.md`, and the four production-audit reports),
 > which were deleted on 2026-07-27 because they contradicted each other.
 >
-> **Last updated:** 2026-07-27 · **HEAD:** `e1f8909` (+ uncommitted program-glimpse work) · **Branch:** `main`
+> **Last updated:** 2026-07-30 · **HEAD:** `6f4ef2d` (+ uncommitted hero-image swap) · **Branch:** `main`
 
 ---
 
@@ -433,6 +433,17 @@ detail preserved in git history): `docs/PROJECT_CONTEXT.md`, `docs/HANDOVER.md`,
 Newest first. One entry per session that changed something. Keep entries short —
 git commit messages carry the detail.
 
+- **2026-07-30** — Replaced the homepage hero photo
+  (`public/images/hero-mentor-student.webp`) with a client-supplied image of a
+  mentor guiding a student at a desk — closer to the mentorship-first promise in
+  §1 than the previous generic two-students-at-a-laptop stock shot. The supplied
+  file (`homepageMCS.webp` in the repo root) was **JPEG data under a `.webp`
+  extension**, so it was re-encoded through `sharp` to real WebP (1254×1254,
+  q82 → 92 KB, down from 188 KB) rather than copied. Hero alt text updated to
+  describe the new photo. The hero card is `aspect-video` + `object-cover`, so a
+  square source is centre-cropped to the middle 56% — verified the crop keeps
+  both faces framed. The untracked root source file can be deleted. Verified:
+  typecheck clean, lint 0 errors, build clean.
 - **2026-07-27** — Program "Course Glimpse" can now be a **photo instead of a
   trailer**. Previously the enrol card on `/programs/[slug]` could only be
   filled by `preview_video_url`, so any course without a filmed trailer showed
